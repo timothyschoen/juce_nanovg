@@ -5,7 +5,7 @@
 #include "MainComponent.h"
 
 MainComponent::MainComponent()
-    : label({}, "This is a text label"),
+    : label({}, "Drawing with NanoVG -> Metal works!"),
       button("Text button")
 {
     setSize (600, 400);
