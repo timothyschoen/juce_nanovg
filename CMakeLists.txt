@@ -61,7 +61,7 @@ target_link_libraries(${TARGET} PUBLIC ${TARGET}_res)
 
 target_compile_definitions(${TARGET}
     PUBLIC
-        JUCE_DISPLAY_SPLASH_SCREEN=0
+        JUCE_DISPLAY_SPLASH_SCREEN=1
 )
 
 target_link_libraries(${TARGET}
