@@ -5,10 +5,10 @@ project(juce_nanovg VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 20)
 
 # JUCE
-add_subdirectory(JUCE)
+add_subdirectory(Libraries/JUCE)
 
 # nanovg
-set(NANOVG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/nanovg)
+set(NANOVG_DIR Libraries/nanovg)
 file(GLOB_RECURSE NANOVG_SRC
     ${NANOVG_DIR}/*.h
     ${NANOVG_DIR}/*.c
@@ -23,10 +23,10 @@ set_property (TARGET nanovg APPEND_STRING PROPERTY
 
 #-----------------------------------------------------------
 
-set(TARGET "juce_nanovg")
+set(TARGET "test_nanovg")
 
 juce_add_gui_app(${TARGET}
-    PRODUCT_NAME "Example NanoVG"
+    PRODUCT_NAME "Test NanoVG"
     VERSION "1.0.0"
     COMPANY_NAME "Arthur Benilov and Timothy Schoen"
 )
@@ -47,21 +47,21 @@ target_link_libraries(${TARGET}
 juce_generate_juce_header(${TARGET})
 
 file(GLOB_RECURSE src
-    ${CMAKE_CURRENT_SOURCE_DIR}/source/*.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/source/example/*.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/source/example/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/*.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/*.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/*.cpp
 )
 
 target_sources(${TARGET} PRIVATE ${src})
 
-file(GLOB_RECURSE res "${CMAKE_CURRENT_SOURCE_DIR}/resources/*.*")
+file(GLOB_RECURSE res "${CMAKE_CURRENT_SOURCE_DIR}/Resources/*.*")
 juce_add_binary_data(${TARGET}_res SOURCES ${res})
 target_link_libraries(${TARGET} PUBLIC ${TARGET}_res)
 
 target_compile_definitions(${TARGET}
     PUBLIC
-        JUCE_DISPLAY_SPLASH_SCREEN=1
+        JUCE_DISPLAY_SPLASH_SCREEN=0
 )
 
 target_link_libraries(${TARGET}
@@ -75,3 +75,4 @@ if(APPLE)
   "-framework Metal"
   )
 endif()
+
