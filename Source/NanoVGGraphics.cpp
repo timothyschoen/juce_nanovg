@@ -159,9 +159,9 @@ static constexpr int embeddedWindowEventMask = ExposureMask | StructureNotifyMas
 	//}
 
 #if NANOVG_METAL
-        nvg = nvgCreateContext(nativeHandle, NVG_ANTIALIAS | NVG_TRIPLE_BUFFER, width, height);
+    nvg = nvgCreateContext(nativeHandle, NVG_ANTIALIAS | NVG_TRIPLE_BUFFER, width, height);
 #else
-        nvg = nvgCreateContext(NVG_ANTIALIAS);
+    nvg = nvgCreateContext(NVG_ANTIALIAS);
 #endif
 
     nvgGlobalCompositeOperation(nvg, NVG_SOURCE_OVER);

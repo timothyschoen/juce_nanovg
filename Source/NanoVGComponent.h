@@ -149,7 +149,7 @@ private:
     juce::NSViewComponent embeddedView;
 //#elif JUCE_WINDOWS
 //    std::unique_ptr<juce::ComponentPeer> nativeWindow {nullptr};
-#elif NANOVG_GL2 || NANOVG_GL3
+#elif NANOVG_GL2 || NANOVG_GL3 || NANOVG_GLES2 || NANOVG_GLES3
     //juce::OpenGLContext openGLContext;
 #else
 #   error Unsupported platform

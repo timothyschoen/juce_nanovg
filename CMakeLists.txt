@@ -46,11 +46,11 @@ juce_add_gui_app(${TARGET}
 
 target_compile_definitions(${TARGET} PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 DONT_SET_USING_JUCE_NAMESPACE=1)
 if(APPLE)
- target_compile_definitions(${TARGET} PUBLIC NANOVG_METAL=1)
- target_compile_definitions(nanovg PUBLIC NANOVG_METAL=1)
+ target_compile_definitions(${TARGET} PUBLIC NANOVG_GLES2=1 NANOVG_GLES2_IMPLEMENTATION)
+ target_compile_definitions(nanovg PUBLIC NANOVG_GLES2=1 NANOVG_GLES2_IMPLEMENTATION)
 else()
-  target_compile_definitions(${TARGET} PUBLIC NANOVG_GL3=1 NANOVG_GL3_IMPLEMENTATION NANOVG_GLEW)
-  target_compile_definitions(nanovg PUBLIC NANOVG_GL3=1 NANOVG_GL3_IMPLEMENTATION NANOVG_GLEW)
+  target_compile_definitions(${TARGET} PUBLIC NANOVG_GLES2=1 NANOVG_GLES2_IMPLEMENTATION)
+  target_compile_definitions(nanovg PUBLIC NANOVG_GLES2 =1 NANOVG_GLES2_IMPLEMENTATION)
 endif()
 
 

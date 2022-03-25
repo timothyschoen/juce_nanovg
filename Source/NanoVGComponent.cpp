@@ -173,9 +173,9 @@ NanoVGComponent::NanoVGComponent()
     attachTo (this);
     overlay.addToDesktop (juce::ComponentPeer::windowRepaintedExplictly);
 
-#if NANOVG_GL2 || NANOVG_GL3 //turning this on improves linux framerate, but seems to expose thread safety issues on windows/mac. see git PRs #349 and #396
+#if NANOVG_GL2 || NANOVG_GL3 || NANOVG_GLES2 || NANOVG_GLES3 //turning this on improves linux framerate, but seems to expose thread safety issues on windows/mac. see git PRs #349 and #396
       openGLContext.setOpenGLVersionRequired(juce::OpenGLContext::openGL3_2);
-      openGLContext.setContinuousRepainting(true);
+      openGLContext.setContinuousRepainting(false);
       openGLContext.setComponentPaintingEnabled(false);
     
 #endif
@@ -375,11 +375,11 @@ void NanoVGComponent::attachTo (juce::Component* component)
         attachedComponent->addAndMakeVisible (embeddedView);
 #elif JUCE_WINDOWS
         attachedComponent->addAndMakeVisible (overlay);
-#elif NANOVG_GL2 || NANOVG_GL3
+#elif NANOVG_GL2 || NANOVG_GL3 || NANOVG_GLES2 || NANOVG_GLES3
         
     setOpaque (true);
     openGLContext.attachTo (*component);
-    openGLContext.setContinuousRepainting (true);
+    openGLContext.setContinuousRepainting (false);
     attachedComponent->addAndMakeVisible (overlay);
 #endif
         overlay.setForwardComponent (attachedComponent);
@@ -440,7 +440,7 @@ void NanoVGComponent::repaintPeer()
 #if JUCE_WINDOWS
     if (nativeWindow != nullptr)
         nativeWindow->repaint (juce::Rectangle<int> (0, 0, overlay.getWidth(), overlay.getHeight()));
-#elif NANOVG_GL2 || NANOVG_GL3
+#elif NANOVG_GL2 || NANOVG_GL3 || NANOVG_GLES2 || NANOVG_GLES3
     openGLContext.triggerRepaint();
 #endif
 }
