@@ -67,10 +67,31 @@ NanoVGGraphicsContext::NanoVGGraphicsContext (void* nativeHandle, int w, int h) 
       height {h}
 {
 
-#ifdef NANOVG_GLEW
-     if(glewInit() != GLEW_OK) {
- 		printf("Could not init glew.\n");
- 	}
+#if JUCE_LINUX
+    Display *dpy( XOpenDisplay( NULL ));
+    int screen = XDefaultScreen( dpy );
+    const int fbCfgAttribslist[] =
+        {
+            GLX_RENDER_TYPE, GLX_RGBA_BIT,
+            GLX_DRAWABLE_TYPE, GLX_PBUFFER_BIT,
+            None
+        };
+        int nElements = 0;
+        GLXFBConfig * glxfbCfg = glXChooseFBConfig( dpy,
+                                      screen,
+                                      fbCfgAttribslist,
+                                      & nElements );
+
+        XVisualInfo * visInfo = glXGetVisualFromFBConfig( dpy, glxfbCfg[ 0 ] );
+
+        GLXContext  glCtx = glXCreateContext( dpy, visInfo, NULL, True );
+
+        auto* window = static_cast<::Window*>(nativeHandle);
+        glXMakeCurrent(dpy, *window, glCtx);
+                           
+        if(glewInit() != GLEW_OK) {
+             printf("Could not init glew.\n");
+         }
  #endif
  
 #if JUCE_MAC
