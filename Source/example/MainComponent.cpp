@@ -25,7 +25,7 @@ MainComponent::~MainComponent()
 
 void MainComponent::paint (juce::Graphics& g)
 {
-    g.fillAll(Colours::rebeccapurple);
+    g.fillAll(juce::Colours::rebeccapurple);
 }
 
 void MainComponent::resized()

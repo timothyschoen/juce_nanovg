@@ -7,7 +7,8 @@
 #include <JuceHeader.h>
 
 #ifdef NANOVG_GLEW
- #  include <GL/glew.h>
+  #include <GL/glew.h>
+  #include <GL/glx.h>
  #endif
  
 #include <nanovg.h>
@@ -39,7 +40,7 @@
     @note This is not a perfect translation of the JUCE
           graphics, but its still quite usable.
 */
-class NanoVGGraphicsContext : public LowLevelGraphicsContext
+class NanoVGGraphicsContext : public juce::LowLevelGraphicsContext
 {
 public:
     NanoVGGraphicsContext (void* nativeHandle, int width, int height);
@@ -48,17 +49,17 @@ public:
     // juce::LowLevelGraphicsContext
     bool isVectorDevice() const override;
     void setOrigin (juce::Point<int>) override;
-    void addTransform (const AffineTransform&) override;
+    void addTransform (const juce::AffineTransform&) override;
     float getPhysicalPixelScaleFactor() override;
 
-    bool clipToRectangle (const Rectangle<int>&) override;
-    bool clipToRectangleList (const RectangleList<int>&) override;
-    void excludeClipRectangle (const Rectangle<int>&) override;
-    void clipToPath (const Path&, const AffineTransform&) override;
-    void clipToImageAlpha (const Image&, const AffineTransform&) override;
+    bool clipToRectangle (const juce::Rectangle<int>&) override;
+    bool clipToRectangleList (const juce::RectangleList<int>&) override;
+    void excludeClipRectangle (const juce::Rectangle<int>&) override;
+    void clipToPath (const juce::Path&, const juce::AffineTransform&) override;
+    void clipToImageAlpha (const juce::Image&, const juce::AffineTransform&) override;
 
-    bool clipRegionIntersects (const Rectangle<int>&) override;
-    Rectangle<int> getClipBounds() const override;
+    bool clipRegionIntersects (const juce::Rectangle<int>&) override;
+    juce::Rectangle<int> getClipBounds() const override;
     bool isClipEmpty() const override;
 
     void saveState() override;
@@ -67,21 +68,21 @@ public:
     void beginTransparencyLayer (float opacity) override;
     void endTransparencyLayer() override;
 
-    void setFill (const FillType&) override;
+    void setFill (const juce::FillType&) override;
     void setOpacity (float) override;
-    void setInterpolationQuality (Graphics::ResamplingQuality) override;
+    void setInterpolationQuality (juce::Graphics::ResamplingQuality) override;
 
-    void fillRect (const Rectangle<int>&, bool) override;
-    void fillRect (const Rectangle<float>&) override;
-    void fillRectList (const RectangleList<float>&) override;
-    void fillPath (const Path&, const AffineTransform&) override;
-    void drawImage (const Image&, const AffineTransform&) override;
-    void drawLine (const Line<float>&) override;
+    void fillRect (const juce::Rectangle<int>&, bool) override;
+    void fillRect (const juce::Rectangle<float>&) override;
+    void fillRectList (const juce::RectangleList<float>&) override;
+    void fillPath (const juce::Path&, const juce::AffineTransform&) override;
+    void drawImage (const juce::Image&, const juce::AffineTransform&) override;
+    void drawLine (const juce::Line<float>&) override;
 
-    void setFont (const Font&) override;
-    const Font& getFont() override;
-    void drawGlyph (int glyphNumber, const AffineTransform&) override;
-    bool drawTextLayout (const AttributedString&, const Rectangle<float>&) override;
+    void setFont (const juce::Font&) override;
+    const juce::Font& getFont() override;
+    void drawGlyph (int glyphNumber, const juce::AffineTransform&) override;
+    bool drawTextLayout (const juce::AttributedString&, const juce::Rectangle<float>&) override;
 
     void resized (int w, int h);
 
@@ -89,18 +90,18 @@ public:
     
     NVGcontext* getContext() { return nvg; }
 
-    const static String defaultTypefaceName;
+    const static juce::String defaultTypefaceName;
 
     const static int imageCacheSize;
 
 private:
 
-    bool loadFontFromResources (const String& typefaceName);
+    bool loadFontFromResources (const juce::String& typefaceName);
     void applyFillType();
     void applyStrokeType();
     void applyFont();
 
-    int getNvgImageId (const Image& image);
+    int getNvgImageId (const juce::Image& image);
     void reduceImageCache();
 
     NVGcontext* nvg{};
@@ -108,16 +109,16 @@ private:
     int width{};
     int height{};
 
-    FillType fillType{};
-    Font font{};
+    juce::FillType fillType{};
+    juce::Font font{};
 
     // Mapping glyph number to a character
     using GlyphToCharMap = std::map<int, wchar_t>;
 
-    GlyphToCharMap getGlyphToCharMapForFont (const Font& f);
+    GlyphToCharMap getGlyphToCharMapForFont (const juce::Font& f);
 
     // Mapping font names to glyph-to-character tables
-    std::map<String, GlyphToCharMap> loadedFonts{};
+    std::map<juce::String, GlyphToCharMap> loadedFonts{};
     const GlyphToCharMap* currentGlyphToCharMap{};
 
     // Tracking images mapped tomtextures.
@@ -127,5 +128,5 @@ private:
         int accessCounter {0};  ///< Usage counter.
     };
 
-    std::map<uint64, NvgImage> images;
+    std::map<juce::uint64, NvgImage> images;
 };

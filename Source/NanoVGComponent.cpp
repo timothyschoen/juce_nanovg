@@ -70,13 +70,13 @@ void NanoVGComponent::paintComponent()
 
         setBackgroundColour (backgroundColour);
 
-        if (auto* display {Desktop::getInstance().getDisplays().getPrimaryDisplay()})
+        if (auto* display {juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()})
             scale = display->scale;
 
         if (attachedComponent == nullptr || initialised)
             return;
 
-        scale = jmax (1.0f, scale);
+        scale = juce::jmax (1.0f, scale);
 
         overlay.setVisible (true);
 
@@ -135,7 +135,7 @@ NanoVGComponent::NanoVGComponent()
     setOpaque (true);
     setCachedComponentImage (new RenderCache (*this));
     attachTo (this);
-    overlay.addToDesktop (ComponentPeer::windowRepaintedExplictly);
+    overlay.addToDesktop (juce::ComponentPeer::windowRepaintedExplictly);
 }
 
 NanoVGComponent::~NanoVGComponent()
@@ -160,7 +160,7 @@ NanoVGComponent::RenderCache::~RenderCache()
     cancelPendingUpdate();
 }
 
-void NanoVGComponent::RenderCache::paint (Graphics&)
+void NanoVGComponent::RenderCache::paint (juce::Graphics&)
 {
     component.paintComponent();
 }
@@ -226,7 +226,7 @@ void NanoVGComponent::resized()
 
 void NanoVGComponent::renderNanovgFrame(NVGcontext* nvg)
 {
-    Graphics g (*nvgGraphicsContext.get());
+    juce::Graphics g (*nvgGraphicsContext.get());
     paintEntireComponent (g, true);
 }
 
@@ -266,7 +266,7 @@ void NanoVGComponent::Overlay::endForward()
     forwarding = false;
 }
 
-void NanoVGComponent::Overlay::forwardMouseEvent (const MouseEvent& event)
+void NanoVGComponent::Overlay::forwardMouseEvent (const juce::MouseEvent& event)
 {
     if (auto* peer {beginForward()})
     {
@@ -276,7 +276,7 @@ void NanoVGComponent::Overlay::forwardMouseEvent (const MouseEvent& event)
     }
 }
 
-void NanoVGComponent::Overlay::forwardMouseWheelEvent (const MouseEvent& event, const MouseWheelDetails& wheel)
+void NanoVGComponent::Overlay::forwardMouseWheelEvent (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 {
     if (auto* peer {beginForward()})
     {
@@ -285,7 +285,7 @@ void NanoVGComponent::Overlay::forwardMouseWheelEvent (const MouseEvent& event, 
     }
 }
 
-void NanoVGComponent::Overlay::forwardMouseMagnifyEvent (const MouseEvent& event, float scaleFactor)
+void NanoVGComponent::Overlay::forwardMouseMagnifyEvent (const juce::MouseEvent& event, float scaleFactor)
 {
     if (auto* peer {beginForward()})
     {
@@ -294,47 +294,47 @@ void NanoVGComponent::Overlay::forwardMouseMagnifyEvent (const MouseEvent& event
     }
 }
 
-void NanoVGComponent::Overlay::mouseMove (const MouseEvent& event)
+void NanoVGComponent::Overlay::mouseMove (const juce::MouseEvent& event)
 {
     forwardMouseEvent (event);
 }
 
-void NanoVGComponent::Overlay::mouseEnter (const MouseEvent& event)
+void NanoVGComponent::Overlay::mouseEnter (const juce::MouseEvent& event)
 {
     forwardMouseEvent (event);
 }
 
-void NanoVGComponent::Overlay::mouseExit (const MouseEvent& event)
+void NanoVGComponent::Overlay::mouseExit (const juce::MouseEvent& event)
 {
     forwardMouseEvent (event);
 }
 
-void NanoVGComponent::Overlay::mouseDown (const MouseEvent& event)
+void NanoVGComponent::Overlay::mouseDown (const juce::MouseEvent& event)
 {
     forwardMouseEvent (event);
 }
 
-void NanoVGComponent::Overlay::mouseDrag (const MouseEvent& event)
+void NanoVGComponent::Overlay::mouseDrag (const juce::MouseEvent& event)
 {
     forwardMouseEvent (event);
 }
 
-void NanoVGComponent::Overlay::mouseUp   (const MouseEvent& event)
+void NanoVGComponent::Overlay::mouseUp   (const juce::MouseEvent& event)
 {
     forwardMouseEvent (event);
 }
 
-void NanoVGComponent::Overlay::mouseDoubleClick (const MouseEvent& event)
+void NanoVGComponent::Overlay::mouseDoubleClick (const juce::MouseEvent& event)
 {
     forwardMouseEvent (event);
 }
 
-void NanoVGComponent::Overlay::mouseWheelMove (const MouseEvent& event, const MouseWheelDetails& wheel)
+void NanoVGComponent::Overlay::mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 {
     forwardMouseWheelEvent (event, wheel);
 }
 
-void NanoVGComponent::Overlay::mouseMagnify (const MouseEvent& event, float scaleFactor)
+void NanoVGComponent::Overlay::mouseMagnify (const juce::MouseEvent& event, float scaleFactor)
 {
     forwardMouseMagnifyEvent (event, scaleFactor);
 }
@@ -377,7 +377,7 @@ void NanoVGComponent::detach()
     }
 }
 
-void NanoVGComponent::setBackgroundColour (Colour c)
+void NanoVGComponent::setBackgroundColour (juce::Colour c)
 {
     backgroundColour = c;
 }
@@ -440,7 +440,7 @@ void NanoVGComponent::trackOverlay (bool moved, bool resized)
         if (moved)
         {
             // Update scale for the current display
-            if (auto* display = Desktop::getInstance().getDisplays().getPrimaryDisplay())
+            if (auto* display = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
                 scale = (float) display->scale;
         }
 

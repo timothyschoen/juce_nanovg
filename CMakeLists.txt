@@ -44,7 +44,7 @@ juce_add_gui_app(${TARGET}
     COMPANY_NAME "Arthur Benilov and Timothy Schoen"
 )
 
-target_compile_definitions(${TARGET} PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+target_compile_definitions(${TARGET} PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 DONT_SET_USING_JUCE_NAMESPACE=1)
 if(APPLE)
  target_compile_definitions(${TARGET} PUBLIC NANOVG_METAL=1)
  target_compile_definitions(nanovg PUBLIC NANOVG_METAL=1)
@@ -99,8 +99,7 @@ endif()
 if("${CMAKE_SYSTEM}" MATCHES "Linux")
   target_link_libraries(${TARGET}
       PRIVATE
-  -lGL -lGLEW
+  -lGL -lGLEW -lGLX
   )
 endif()
-
 
