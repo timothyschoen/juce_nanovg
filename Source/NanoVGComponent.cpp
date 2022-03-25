@@ -141,7 +141,7 @@ NanoVGComponent::~NanoVGComponent()
     if (nvg != nullptr)
     {
         nvgGraphicsContext->removeCachedImages();
-        nvgDeleteContext(nvg);
+        //nvgDeleteContext(nvg);
         
     }
 }
@@ -192,7 +192,13 @@ void NanoVGComponent::renderFrame()
         const float width {getWidth() * scale};
         const float height {getHeight() * scale};
         
-        nvgGraphicsContext.reset (new NanoVGGraphicsContext (embeddedView.getView(), (int)width, (int)height));
+        #if JUCE_MAC
+            void* nativeHandle = embeddedView.getView();
+        #elif JUCE_WINDOWS || JUCE_LINUX
+            void* nativeHandle = nativeWindow->getNativeHandle();
+        #endif
+        
+        nvgGraphicsContext.reset (new NanoVGGraphicsContext (nativeHandle, (int)width, (int)height));
         nvg = nvgGraphicsContext->getContext();
         
         //mainFrameBuffer = nvgCreateFramebuffer(nvg, width, height, 0);
@@ -388,8 +394,11 @@ void NanoVGComponent::componentMovedOrResized (juce::Component& component, bool 
     
     const auto width = uint32_t (scale * overlay.getWidth());
     const auto height = uint32_t (scale * overlay.getHeight());
+    #if JUCE_MAC
+      mnvgSetViewBounds(embeddedView.getView(), width, height);
+    #elif JUCE_WINDOWS || JUCE_LINUX
     
-    mnvgSetViewBounds(embeddedView.getView(), width, height);
+    #endif
     
 }
 
@@ -414,7 +423,7 @@ void NanoVGComponent::trackOverlay (bool moved, bool resized)
         juce::Rectangle<int> bounds (0, 0, attachedComponent->getWidth(), attachedComponent->getHeight());
 #if JUCE_MAC
         embeddedView.setBounds (bounds);
-#elif JUCE_WINDOWS || JUCE_LINUX
+#elif JUCE_WINDOWS
 
         overlay.setBounds (bounds); // TODO: Do we need to do this?
 
@@ -436,7 +445,7 @@ void NanoVGComponent::trackOverlay (bool moved, bool resized)
     }
 }
 
-#if JUCE_WINDOWS || JUCE_LINUX
+#if JUCE_WINDOWS
 
 void NanoVGComponent::updateWindowPosition (juce::Rectangle<int> bounds)
 {
@@ -453,6 +462,27 @@ void NanoVGComponent::updateWindowPosition (juce::Rectangle<int> bounds)
         SetWindowPos ((HWND) nativeWindow->getNativeHandle(), 0,
             bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(),
             SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    }
+}
+
+#elif JUCE_LINUX
+
+void NanoVGComponent::updateWindowPosition (juce::Rectangle<int> bounds)
+{
+    if (nativeWindow != nullptr)
+    {
+        double nativeScaleFactor = 1.0;
+
+        if (auto* peer = overlay.getTopLevelComponent()->getPeer())
+            nativeScaleFactor = peer->getPlatformScaleFactor();
+
+        if (! approximatelyEqual (nativeScaleFactor, 1.0))
+            bounds = (bounds.toDouble() * nativeScaleFactor).toNearestInt();
+
+/*
+        SetWindowPos ((HWND) nativeWindow->getNativeHandle(), 0,
+            bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(),
+            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER); */
     }
 }
 

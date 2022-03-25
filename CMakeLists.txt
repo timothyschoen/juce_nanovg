@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.15)
 
 project(juce_nanovg VERSION 1.0.0)
 
@@ -9,18 +9,26 @@ add_subdirectory(Libraries/JUCE)
 
 # nanovg
 set(NANOVG_DIR Libraries/nanovg)
+if(APPLE)
 file(GLOB_RECURSE NANOVG_SRC
     ${NANOVG_DIR}/*.h
     ${NANOVG_DIR}/*.c
     ${NANOVG_DIR}/*.m
 )
+else()
+file(GLOB_RECURSE NANOVG_SRC
+    ${NANOVG_DIR}/*.h
+    ${NANOVG_DIR}/*.c
+)
+endif()
 add_library(nanovg STATIC ${NANOVG_SRC})
 target_include_directories(nanovg PUBLIC ${NANOVG_DIR})
 
 # enable automatic reference counting, needed for nvg_metal
+if(APPLE)
 set_property (TARGET nanovg APPEND_STRING PROPERTY
               COMPILE_FLAGS "-fobjc-arc")
-
+endif()
 #-----------------------------------------------------------
 
 set(TARGET "test_nanovg")
@@ -40,6 +48,7 @@ target_link_libraries(${TARGET}
         juce::juce_audio_plugin_client
         juce::juce_gui_basics
         juce::juce_gui_extra
+        juce::juce_opengl
     PUBLIC
         juce::juce_recommended_config_flags
 )
