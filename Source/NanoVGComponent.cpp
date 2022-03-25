@@ -63,7 +63,7 @@ void NanoVGComponent::paintComponent()
 
         overlay.setVisible (true);
 
-    #if JUCE_WINDOWS
+    #if JUCE_WINDOWS || JUCE_LINUX
         nativeWindow.reset (createNonRepaintingEmbeddedWindowsPeer (overlay,
                                                                     overlay.getTopLevelComponent()->getWindowHandle()));
         nativeWindow->setVisible (true);
@@ -72,7 +72,7 @@ void NanoVGComponent::paintComponent()
         auto* peer =
     #if JUCE_MAC
             overlay.getPeer();
-    #elif JUCE_WINDOWS
+    #elif JUCE_WINDOWS || JUCE_LINUX
             nativeWindow.get();
     #else
             nillptr;
@@ -90,7 +90,7 @@ void NanoVGComponent::paintComponent()
 
         trackOverlay (false, true);
 
-    #if JUCE_WINDOWS
+    #if JUCE_WINDOWS || JUCE_LINUX
         overlay.getTopLevelComponent()->repaint();
     #endif
 
@@ -126,7 +126,7 @@ NanoVGComponent::~NanoVGComponent()
     if (nvg != nullptr)
     {
         nvgGraphicsContext->removeCachedImages();
-        //nvgDelete (nvg);
+        nvgDeleteContext(nvg);
         
     }
 }
@@ -148,7 +148,7 @@ void NanoVGComponent::RenderCache::paint (Graphics&)
 
 bool NanoVGComponent::RenderCache::invalidateAll()
 {
-#if JUCE_WINDOWS
+#if JUCE_WINDOWS || JUCE_LINUX
     triggerAsyncUpdate();
 #endif
 
@@ -325,14 +325,13 @@ void NanoVGComponent::attachTo (juce::Component* component)
         attachedComponent = nullptr;
     }
 
-
     if (component != nullptr)
     {
         attachedComponent = component;
         attachedComponent->addComponentListener (this);
 #if JUCE_MAC
         attachedComponent->addAndMakeVisible (embeddedView);
-#elif JUCE_WINDOWS
+#elif JUCE_WINDOWS || JUCE_LINUX
         attachedComponent->addAndMakeVisible (overlay);
 #endif
         overlay.setForwardComponent (attachedComponent);
@@ -387,7 +386,7 @@ void NanoVGComponent::componentBeingDeleted (juce::Component& component)
 
 void NanoVGComponent::repaintPeer()
 {
-#if JUCE_WINDOWS
+#if JUCE_WINDOWS || JUCE_LINUX
     if (nativeWindow != nullptr)
         nativeWindow->repaint (juce::Rectangle<int> (0, 0, overlay.getWidth(), overlay.getHeight()));
 #endif
@@ -400,7 +399,7 @@ void NanoVGComponent::trackOverlay (bool moved, bool resized)
         juce::Rectangle<int> bounds (0, 0, attachedComponent->getWidth(), attachedComponent->getHeight());
 #if JUCE_MAC
         embeddedView.setBounds (bounds);
-#elif JUCE_WINDOWS
+#elif JUCE_WINDOWS || JUCE_LINUX
 
         overlay.setBounds (bounds); // TODO: Do we need to do this?
 
@@ -422,7 +421,7 @@ void NanoVGComponent::trackOverlay (bool moved, bool resized)
     }
 }
 
-#if JUCE_WINDOWS
+#if JUCE_WINDOWS || JUCE_LINUX
 
 void NanoVGComponent::updateWindowPosition (juce::Rectangle<int> bounds)
 {

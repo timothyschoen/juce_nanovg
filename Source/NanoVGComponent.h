@@ -8,8 +8,6 @@
 
 #include "NanoVGGraphics.h"
 
-
-
 /**
     JUCE UI component rendered usin nanovg
 
@@ -133,16 +131,21 @@ private:
 
     void repaintPeer();
 
-    NSViewComponent embeddedView;
-
-
     private:
 
     void trackOverlay (bool moved, bool resized);
 
-    #if JUCE_WINDOWS
+    #if JUCE_WINDOWS || JUCE_LINUX
     void updateWindowPosition (juce::Rectangle<int> bounds);
     #endif
+    
+#if JUCE_MAC
+    NSViewComponent embeddedView;
+#elif JUCE_WINDOWS || JUCE_LINUX
+    std::unique_ptr<ComponentPeer> nativeWindow {nullptr};
+#else
+#   error Unsupported platform
+#endif
 
     bool initialised {false};
     float scale {1.0f};
