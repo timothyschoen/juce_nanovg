@@ -64,7 +64,7 @@ void NanoVGComponent::initialise()
 
     overlay.setVisible (true);
 
-#if JUCE_WINDOWS
+#elif JUCE_WINDOWS
     nativeWindow.reset (createNonRepaintingEmbeddedWindowsPeer (overlay, overlay.getTopLevelComponent()->getWindowHandle()));
     nativeWindow->setVisible (true);
 #endif
@@ -76,12 +76,8 @@ void NanoVGComponent::initialise()
 #else
     auto* peer = nullptr;
 #endif
-
-    //jassert (peer != nullptr);
-
-
+    
 #if NANOVG_METAL
-
     embeddedView.setView (peer->getNativeHandle());
 #endif
 
@@ -89,14 +85,7 @@ void NanoVGComponent::initialise()
 
     trackOverlay (false, true);
 
-#if JUCE_WINDOWS
-    overlay.getTopLevelComponent()->repaint();
-#endif
-
-#else
-    
-    
-#endif
+    //overlay.getTopLevelComponent()->repaint();
 }
 
 void NanoVGComponent::render()
@@ -120,16 +109,10 @@ void NanoVGComponent::render()
         //mainFrameBuffer = nvgCreateFramebuffer(nvg, width, height, 0);
     }
     
+    glViewport(0, 0, getWidth() * scale, getHeight() * scale);
     
     nvgBeginFrame (nvg, getWidth(), getHeight(), scale);
 
-    float x = 10.0f;
-    float y = 10.0f;
-    float h = 300.0f;
-    float w = 300.0f;
-    
-    float pos = 0.6;
-    
     renderNanovgFrame (nvg);
     
     nvgEndFrame (nvg);
@@ -156,7 +139,11 @@ void NanoVGComponent::paintComponent()
     const float width {getWidth() * scale};
     const float height {getHeight() * scale};
 
+#if NANOVG_METAL
     render();
+#else
+    openGLContext.triggerRepaint();
+#endif
 
     currentlyPainting = false;
 }
@@ -175,8 +162,9 @@ NanoVGComponent::NanoVGComponent()
 
 #if NANOVG_GL2 || NANOVG_GL3 || NANOVG_GLES2 || NANOVG_GLES3 //turning this on improves linux framerate, but seems to expose thread safety issues on windows/mac. see git PRs #349 and #396
       openGLContext.setOpenGLVersionRequired(juce::OpenGLContext::openGL3_2);
-      openGLContext.setContinuousRepainting(false);
+      openGLContext.setContinuousRepainting(true);
       openGLContext.setComponentPaintingEnabled(false);
+    
     
 #endif
 }
@@ -361,6 +349,8 @@ void NanoVGComponent::Overlay::mouseMagnify (const juce::MouseEvent& event, floa
 
 void NanoVGComponent::attachTo (juce::Component* component)
 {
+    openGLContext.setMultisamplingEnabled(true);
+    
     if (attachedComponent != nullptr)
     {
         detach();
@@ -373,16 +363,14 @@ void NanoVGComponent::attachTo (juce::Component* component)
         attachedComponent->addComponentListener (this);
 #if NANOVG_METAL
         attachedComponent->addAndMakeVisible (embeddedView);
-#elif JUCE_WINDOWS
-        attachedComponent->addAndMakeVisible (overlay);
 #elif NANOVG_GL2 || NANOVG_GL3 || NANOVG_GLES2 || NANOVG_GLES3
-        
+    attachedComponent->addAndMakeVisible (overlay);
     setOpaque (true);
     openGLContext.attachTo (*component);
-    openGLContext.setContinuousRepainting (false);
+    openGLContext.setContinuousRepainting (true);
     attachedComponent->addAndMakeVisible (overlay);
 #endif
-        overlay.setForwardComponent (attachedComponent);
+    overlay.setForwardComponent (attachedComponent);
     }
 }
 
@@ -423,8 +411,8 @@ void NanoVGComponent::componentMovedOrResized (juce::Component& component, bool 
     const auto height = uint32_t (scale * overlay.getHeight());
     #if NANOVG_METAL
       mnvgSetViewBounds(embeddedView.getView(), width, height);
-    #elif JUCE_WINDOWS || JUCE_LINUX
-
+    #else
+       //openGLContext.updateViewportSize(true);
     #endif
 
 }
@@ -452,22 +440,24 @@ void NanoVGComponent::trackOverlay (bool moved, bool resized)
         juce::Rectangle<int> bounds (0, 0, attachedComponent->getWidth(), attachedComponent->getHeight());
 #if NANOVG_METAL
         embeddedView.setBounds (bounds);
-#elif JUCE_WINDOWS
+#else
+        
+        juce::MessageManager::callAsync([this, bounds](){
+            overlay.setBounds (bounds); // TODO: Do we need to do this?
+        });
 
-        overlay.setBounds (bounds); // TODO: Do we need to do this?
+        //auto* topComp = overlay.getTopLevelComponent();
 
-        auto* topComp = overlay.getTopLevelComponent();
-
-        if (auto* peer = topComp->getPeer())
-            updateWindowPosition (peer->getAreaCoveredBy (overlay));
+       // if (auto* peer = topComp->getPeer())
+        //    updateWindowPosition (peer->getAreaCoveredBy (overlay));
 #endif
 
-        if (moved)
-        {
-            // Update scale for the current display
+        juce::MessageManager::callAsync([this](){
+            //  Update scale for the current display
             if (auto* display = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
                 scale = (float) display->scale;
-        }
+        });
+
 
         if (resized)
             reset();
