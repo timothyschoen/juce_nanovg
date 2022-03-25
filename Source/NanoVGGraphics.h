@@ -6,13 +6,11 @@
 
 #include <JuceHeader.h>
 
+#ifdef NANOVG_GLEW
+ #  include <GL/glew.h>
+ #endif
+ 
 #include <nanovg.h>
-
-#if JUCE_WINDOWS || JUCE_LINUX
-#define NANOVG_GL3 1
-#elif JUCE_MAC
-#define NANOVG_METAL 1
-#endif
 
 
 #if defined NANOVG_GL2

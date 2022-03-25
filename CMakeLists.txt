@@ -4,6 +4,11 @@ project(juce_nanovg VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 20)
 
+if("${CMAKE_SYSTEM}" MATCHES "Linux")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-Bsymbolic")
+  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-Symbolic")
+endif()
+
 # JUCE
 add_subdirectory(Libraries/JUCE)
 
@@ -39,16 +44,22 @@ juce_add_gui_app(${TARGET}
     COMPANY_NAME "Arthur Benilov and Timothy Schoen"
 )
 
+target_compile_definitions(${TARGET} PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+if(APPLE)
+ target_compile_definitions(${TARGET} PUBLIC NANOVG_METAL=1)
+ target_compile_definitions(nanovg PUBLIC NANOVG_METAL=1)
+else()
+  target_compile_definitions(${TARGET} PUBLIC NANOVG_GL3=1 NANOVG_GL3_IMPLEMENTATION NANOVG_GLEW)
+  target_compile_definitions(nanovg PUBLIC NANOVG_GL3=1 NANOVG_GL3_IMPLEMENTATION NANOVG_GLEW)
+endif()
+
+
 target_link_libraries(${TARGET}
     PRIVATE
         juce::juce_core
         juce::juce_data_structures
-        juce::juce_audio_basics
-        juce::juce_audio_utils
-        juce::juce_audio_plugin_client
         juce::juce_gui_basics
-        juce::juce_gui_extra
-        juce::juce_opengl
+ 	juce::juce_gui_extra
     PUBLIC
         juce::juce_recommended_config_flags
 )
@@ -70,7 +81,7 @@ target_link_libraries(${TARGET} PUBLIC ${TARGET}_res)
 
 target_compile_definitions(${TARGET}
     PUBLIC
-        JUCE_DISPLAY_SPLASH_SCREEN=0
+        JUCE_DISPLAY_SPLASH_SCREEN=1
 )
 
 target_link_libraries(${TARGET}
@@ -84,4 +95,12 @@ if(APPLE)
   "-framework Metal"
   )
 endif()
+
+if("${CMAKE_SYSTEM}" MATCHES "Linux")
+  target_link_libraries(${TARGET}
+      PRIVATE
+  -lGL -lGLEW
+  )
+endif()
+
 

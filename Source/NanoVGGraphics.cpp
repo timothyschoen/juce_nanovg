@@ -3,7 +3,12 @@
 //
 
 #include "NanoVGGraphics.h"
+
+#if NANOVG_METAL
 #include <nanovg_mtl.h>
+#else
+#include <nanovg_gl.h>
+#endif
 //==============================================================================
 
 #define STB_TRUETYPE_IMPLEMENTATION
@@ -61,10 +66,17 @@ NanoVGGraphicsContext::NanoVGGraphicsContext (void* nativeHandle, int w, int h) 
       width {w},
       height {h}
 {
+
+#ifdef NANOVG_GLEW
+     if(glewInit() != GLEW_OK) {
+ 		printf("Could not init glew.\n");
+ 	}
+ #endif
+ 
 #if JUCE_MAC
         nvg = nvgCreateContext(nativeHandle, NVG_ANTIALIAS | NVG_TRIPLE_BUFFER, width, height);
 #else
-        nvg = nvgCreateContext(nativeHandle, NVG_ANTIALIAS);
+        nvg = nvgCreateContext(NVG_ANTIALIAS);
 #endif
     
     nvgGlobalCompositeOperation(nvg, NVG_SOURCE_OVER);

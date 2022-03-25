@@ -16,11 +16,13 @@
 
 #if JUCE_WINDOWS
 #include <Windows.h>
-#endif
 
 namespace juce {
     extern ComponentPeer* createNonRepaintingEmbeddedWindowsPeer (Component&, void* parent);
 }
+#endif
+
+
 
 #endif // JUCE_WINDOWS
 
@@ -78,19 +80,21 @@ void NanoVGComponent::paintComponent()
 
         overlay.setVisible (true);
 
-    #if JUCE_WINDOWS || JUCE_LINUX
-        nativeWindow.reset (createNonRepaintingEmbeddedWindowsPeer (overlay,
-                                                                    overlay.getTopLevelComponent()->getWindowHandle()));
+    #if JUCE_WINDOWS
+        nativeWindow.reset (createNonRepaintingEmbeddedWindowsPeer (overlay, overlay.getTopLevelComponent()->getWindowHandle()));
         nativeWindow->setVisible (true);
+    #elif JUCE_LINUX
+    nativeWindow.reset (overlay.getPeer());
+    nativeWindow->setVisible (true);
     #endif
-
-        auto* peer =
+                                                                    
+        
     #if JUCE_MAC
-            overlay.getPeer();
+        auto* peer =  overlay.getPeer();
     #elif JUCE_WINDOWS || JUCE_LINUX
-            nativeWindow.get();
+        auto* peer = nativeWindow.get();
     #else
-            nillptr;
+        auto* peer = nullptr;
     #endif
 
         jassert (peer != nullptr);
