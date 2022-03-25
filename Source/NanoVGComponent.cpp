@@ -108,8 +108,9 @@ void NanoVGComponent::render()
         
         //mainFrameBuffer = nvgCreateFramebuffer(nvg, width, height, 0);
     }
-    
+#if NANOVG_GL2 || NANOVG_GL3 || NANOVG_GLES2 || NANOVG_GLES3
     glViewport(0, 0, getWidth() * scale, getHeight() * scale);
+#endif
     
     nvgBeginFrame (nvg, getWidth(), getHeight(), scale);
 
