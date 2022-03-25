@@ -6,11 +6,12 @@
 
 #include <JuceHeader.h>
 
+using namespace juce::gl;
 #ifdef NANOVG_GLEW
-  #include <GL/glew.h>
-  #include <GL/glx.h>
+  //#include <GL/glew.h>
+  //#include <GL/glx.h>
  #endif
- 
+
 #include <nanovg.h>
 
 
@@ -87,7 +88,7 @@ public:
     void resized (int w, int h);
 
     void removeCachedImages();
-    
+
     NVGcontext* getContext() { return nvg; }
 
     const static juce::String defaultTypefaceName;
@@ -127,6 +128,7 @@ private:
         int id {-1};            ///< Image/texture ID.
         int accessCounter {0};  ///< Usage counter.
     };
+
 
     std::map<juce::uint64, NvgImage> images;
 };

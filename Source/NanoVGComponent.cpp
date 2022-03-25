@@ -5,26 +5,16 @@
 
 #include "NanoVGComponent.h"
 
-#if JUCE_MAC
+#if NANOVG_METAL
 #include <nanovg_mtl.h>
 
-#elif JUCE_WINDOWS || JUCE_LINUX
-
-#ifndef NOMINMAX
-#   define NOMINMAX
-#endif
-
-#if JUCE_WINDOWS
+#elif JUCE_WINDOWS
 #include <Windows.h>
 
 namespace juce {
     extern ComponentPeer* createNonRepaintingEmbeddedWindowsPeer (Component&, void* parent);
 }
 #endif
-
-
-
-#endif // JUCE_WINDOWS
 
 bool NanoVGComponent::isInitialised() const
 {
@@ -52,6 +42,105 @@ void NanoVGComponent::stopPeriodicRepaint()
     stopTimer();
 }
 
+void NanoVGComponent::initialise()
+{
+#if NANOVG_METAL
+    if (getBounds().isEmpty())
+    {
+        // Component placement is not ready yet - postpone initialisation.
+        currentlyPainting = false;
+        return;
+    }
+
+    setBackgroundColour (backgroundColour);
+
+    if (auto* display {juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()})
+        scale = display->scale;
+
+    if (attachedComponent == nullptr || initialised)
+        return;
+
+    scale = juce::jmax (1.0f, scale);
+
+    overlay.setVisible (true);
+
+#if JUCE_WINDOWS
+    nativeWindow.reset (createNonRepaintingEmbeddedWindowsPeer (overlay, overlay.getTopLevelComponent()->getWindowHandle()));
+    nativeWindow->setVisible (true);
+#endif
+    
+#if JUCE_MAC
+    auto* peer =  overlay.getPeer();
+#elif JUCE_WINDOWS
+    auto* peer = nativeWindow.get();
+#else
+    auto* peer = nullptr;
+#endif
+
+    //jassert (peer != nullptr);
+
+
+#if NANOVG_METAL
+
+    embeddedView.setView (peer->getNativeHandle());
+#endif
+
+    initialised = true;
+
+    trackOverlay (false, true);
+
+#if JUCE_WINDOWS
+    overlay.getTopLevelComponent()->repaint();
+#endif
+
+#else
+    
+    
+#endif
+}
+
+void NanoVGComponent::render()
+{
+    if (!nvg)
+    {
+        const float width {getWidth() * scale};
+        const float height {getHeight() * scale};
+        
+        #if NANOVG_METAL
+            void* nativeHandle = embeddedView.getView();
+        #elif JUCE_WINDOWS
+            void* nativeHandle = nativeWindow->getNativeHandle();
+        #else
+        void* nativeHandle = nullptr;
+        #endif
+        
+        nvgGraphicsContext.reset (new NanoVGGraphicsContext (nativeHandle, (int)width, (int)height));
+        nvg = nvgGraphicsContext->getContext();
+        
+        //mainFrameBuffer = nvgCreateFramebuffer(nvg, width, height, 0);
+    }
+    
+    
+    nvgBeginFrame (nvg, getWidth(), getHeight(), scale);
+
+    float x = 10.0f;
+    float y = 10.0f;
+    float h = 300.0f;
+    float w = 300.0f;
+    
+    float pos = 0.6;
+    
+    renderNanovgFrame (nvg);
+    
+    nvgEndFrame (nvg);
+}
+
+void NanoVGComponent::shutdown()
+{
+    //nvgDeleteContext(nvg);
+}
+
+
 void NanoVGComponent::paintComponent()
 {
     if (currentlyPainting)
@@ -61,65 +150,13 @@ void NanoVGComponent::paintComponent()
 
     if (!isInitialised())
     {
-        if (getBounds().isEmpty())
-        {
-            // Component placement is not ready yet - postpone initialisation.
-            currentlyPainting = false;
-            return;
-        }
-
-        setBackgroundColour (backgroundColour);
-
-        if (auto* display {juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()})
-            scale = display->scale;
-
-        if (attachedComponent == nullptr || initialised)
-            return;
-
-        scale = juce::jmax (1.0f, scale);
-
-        overlay.setVisible (true);
-
-    #if JUCE_WINDOWS
-        nativeWindow.reset (createNonRepaintingEmbeddedWindowsPeer (overlay, overlay.getTopLevelComponent()->getWindowHandle()));
-        nativeWindow->setVisible (true);
-    #elif JUCE_LINUX
-    nativeWindow.reset (overlay.getPeer());
-    nativeWindow->setVisible (true);
-    #endif
-                                                                    
-        
-    #if JUCE_MAC
-        auto* peer =  overlay.getPeer();
-    #elif JUCE_WINDOWS || JUCE_LINUX
-        auto* peer = nativeWindow.get();
-    #else
-        auto* peer = nullptr;
-    #endif
-
-        jassert (peer != nullptr);
-
-
-    #if JUCE_MAC
-        
-        embeddedView.setView (peer->getNativeHandle());
-    #endif
-
-        initialised = true;
-
-        trackOverlay (false, true);
-
-    #if JUCE_WINDOWS || JUCE_LINUX
-        overlay.getTopLevelComponent()->repaint();
-    #endif
-
+        initialise();
     }
 
     const float width {getWidth() * scale};
     const float height {getHeight() * scale};
 
-    
-    renderFrame();
+    render();
 
     currentlyPainting = false;
 }
@@ -129,24 +166,30 @@ void NanoVGComponent::timerCallback()
     repaint();
 }
 
-
 NanoVGComponent::NanoVGComponent()
 {
     setOpaque (true);
     setCachedComponentImage (new RenderCache (*this));
     attachTo (this);
     overlay.addToDesktop (juce::ComponentPeer::windowRepaintedExplictly);
+
+#if NANOVG_GL2 || NANOVG_GL3 //turning this on improves linux framerate, but seems to expose thread safety issues on windows/mac. see git PRs #349 and #396
+      openGLContext.setOpenGLVersionRequired(juce::OpenGLContext::openGL3_2);
+      openGLContext.setContinuousRepainting(true);
+      openGLContext.setComponentPaintingEnabled(false);
+    
+#endif
 }
 
 NanoVGComponent::~NanoVGComponent()
 {
     detach();
-    
+
     if (nvg != nullptr)
     {
         nvgGraphicsContext->removeCachedImages();
         //nvgDeleteContext(nvg);
-        
+
     }
 }
 
@@ -189,32 +232,6 @@ void NanoVGComponent::RenderCache::handleAsyncUpdate()
 }
 
 
-void NanoVGComponent::renderFrame()
-{
-    if (!nvg)
-    {
-        const float width {getWidth() * scale};
-        const float height {getHeight() * scale};
-        
-        #if JUCE_MAC
-            void* nativeHandle = embeddedView.getView();
-        #elif JUCE_WINDOWS || JUCE_LINUX
-            void* nativeHandle = nativeWindow->getNativeHandle();
-        #endif
-        
-        nvgGraphicsContext.reset (new NanoVGGraphicsContext (nativeHandle, (int)width, (int)height));
-        nvg = nvgGraphicsContext->getContext();
-        
-        //mainFrameBuffer = nvgCreateFramebuffer(nvg, width, height, 0);
-    }
-    
-    
-    nvgBeginFrame (nvg, getWidth(), getHeight(), scale);
-
-    renderNanovgFrame (nvg);
-
-    nvgEndFrame (nvg);
-}
 
 void NanoVGComponent::resized()
 {
@@ -354,10 +371,16 @@ void NanoVGComponent::attachTo (juce::Component* component)
     {
         attachedComponent = component;
         attachedComponent->addComponentListener (this);
-#if JUCE_MAC
+#if NANOVG_METAL
         attachedComponent->addAndMakeVisible (embeddedView);
-#elif JUCE_WINDOWS || JUCE_LINUX
+#elif JUCE_WINDOWS
         attachedComponent->addAndMakeVisible (overlay);
+#elif NANOVG_GL2 || NANOVG_GL3
+        
+    setOpaque (true);
+    openGLContext.attachTo (*component);
+    openGLContext.setContinuousRepainting (true);
+    attachedComponent->addAndMakeVisible (overlay);
 #endif
         overlay.setForwardComponent (attachedComponent);
     }
@@ -368,7 +391,7 @@ void NanoVGComponent::detach()
     if (attachedComponent != nullptr)
     {
         attachedComponent->removeComponentListener (this);
-#if JUCE_MAC
+#if NANOVG_METAL
         attachedComponent->removeChildComponent (&embeddedView);
 #endif
         attachedComponent = nullptr;
@@ -395,15 +418,15 @@ void NanoVGComponent::componentMovedOrResized (juce::Component& component, bool 
         return;
 
     trackOverlay (wasMoved, wasResized);
-    
+
     const auto width = uint32_t (scale * overlay.getWidth());
     const auto height = uint32_t (scale * overlay.getHeight());
-    #if JUCE_MAC
+    #if NANOVG_METAL
       mnvgSetViewBounds(embeddedView.getView(), width, height);
     #elif JUCE_WINDOWS || JUCE_LINUX
-    
+
     #endif
-    
+
 }
 
 void NanoVGComponent::componentBeingDeleted (juce::Component& component)
@@ -414,9 +437,11 @@ void NanoVGComponent::componentBeingDeleted (juce::Component& component)
 
 void NanoVGComponent::repaintPeer()
 {
-#if JUCE_WINDOWS || JUCE_LINUX
+#if JUCE_WINDOWS
     if (nativeWindow != nullptr)
         nativeWindow->repaint (juce::Rectangle<int> (0, 0, overlay.getWidth(), overlay.getHeight()));
+#elif NANOVG_GL2 || NANOVG_GL3
+    openGLContext.triggerRepaint();
 #endif
 }
 
@@ -425,7 +450,7 @@ void NanoVGComponent::trackOverlay (bool moved, bool resized)
     if (attachedComponent)
     {
         juce::Rectangle<int> bounds (0, 0, attachedComponent->getWidth(), attachedComponent->getHeight());
-#if JUCE_MAC
+#if NANOVG_METAL
         embeddedView.setBounds (bounds);
 #elif JUCE_WINDOWS
 
@@ -460,7 +485,7 @@ void NanoVGComponent::updateWindowPosition (juce::Rectangle<int> bounds)
         if (auto* peer = overlay.getTopLevelComponent()->getPeer())
             nativeScaleFactor = peer->getPlatformScaleFactor();
 
-        if (! approximatelyEqual (nativeScaleFactor, 1.0))
+        if (! juce::approximatelyEqual (nativeScaleFactor, 1.0))
             bounds = (bounds.toDouble() * nativeScaleFactor).toNearestInt();
 
         SetWindowPos ((HWND) nativeWindow->getNativeHandle(), 0,
@@ -473,6 +498,7 @@ void NanoVGComponent::updateWindowPosition (juce::Rectangle<int> bounds)
 
 void NanoVGComponent::updateWindowPosition (juce::Rectangle<int> bounds)
 {
+    /*
     if (nativeWindow != nullptr)
     {
         double nativeScaleFactor = 1.0;
@@ -480,14 +506,9 @@ void NanoVGComponent::updateWindowPosition (juce::Rectangle<int> bounds)
         if (auto* peer = overlay.getTopLevelComponent()->getPeer())
             nativeScaleFactor = peer->getPlatformScaleFactor();
 
-        if (! approximatelyEqual (nativeScaleFactor, 1.0))
+        if (! juce::approximatelyEqual (nativeScaleFactor, 1.0))
             bounds = (bounds.toDouble() * nativeScaleFactor).toNearestInt();
-
-/*
-        SetWindowPos ((HWND) nativeWindow->getNativeHandle(), 0,
-            bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight(),
-            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER); */
-    }
+    } */
 }
 
 #endif

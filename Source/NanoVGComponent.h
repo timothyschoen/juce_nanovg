@@ -17,7 +17,13 @@
 
 class MNVGframebuffer;
 
-class NanoVGComponent : public juce::Component, public juce::ComponentListener, public juce::Timer
+class NanoVGComponent :
+#if NANOVG_METAL
+public juce::Component,
+#else
+public juce::OpenGLAppComponent,
+#endif
+public juce::ComponentListener, public juce::Timer
 {
     class RenderCache : public juce::CachedComponentImage,
     private juce::AsyncUpdater
@@ -39,10 +45,10 @@ class NanoVGComponent : public juce::Component, public juce::ComponentListener, 
 
     //------------------------------------------------------
 public:
-    
+
     NanoVGComponent();
     ~NanoVGComponent();
-    
+
     bool isInitialised() const;
 
     void setBackgroundColour (juce::Colour c);
@@ -50,16 +56,16 @@ public:
     void startPeriodicRepaint(int fps = 30);
     void stopPeriodicRepaint();
 
-    void renderFrame();
-
-
+    void initialise();
+    void render();
+    void shutdown();
 
     virtual void renderNanovgFrame(NVGcontext* nvg);
 
     void resized() override;
 
 private:
-    
+
     friend class NanoVGComponent::RenderCache;
 
     void paintComponent();
@@ -68,21 +74,21 @@ private:
 
     bool currentlyPainting {false};
     bool showRenderStats {false};
-    
+
     MNVGframebuffer* mainFrameBuffer = nullptr;
 
     NVGcontext* nvg {nullptr};
     std::unique_ptr<NanoVGGraphicsContext> nvgGraphicsContext {nullptr};
 
     juce::Colour backgroundColour {};
-    
+
     /** Overlay component that will have nanovg attached to it.
 
         The overlay component will pe placed over the component
         that has nanovg context attached. It will forward mouse events
         down to its peer underneath.
     */
-    
+
     class Overlay final : public juce::Component
     {
     public:
@@ -138,11 +144,13 @@ private:
     #if JUCE_WINDOWS || JUCE_LINUX
     void updateWindowPosition (juce::Rectangle<int> bounds);
     #endif
-    
-#if JUCE_MAC
+
+#if NANOVG_METAL
     juce::NSViewComponent embeddedView;
-#elif JUCE_WINDOWS || JUCE_LINUX
-    std::unique_ptr<juce::ComponentPeer> nativeWindow {nullptr};
+//#elif JUCE_WINDOWS
+//    std::unique_ptr<juce::ComponentPeer> nativeWindow {nullptr};
+#elif NANOVG_GL2 || NANOVG_GL3
+    //juce::OpenGLContext openGLContext;
 #else
 #   error Unsupported platform
 #endif

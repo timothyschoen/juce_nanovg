@@ -60,6 +60,7 @@ target_link_libraries(${TARGET}
         juce::juce_data_structures
         juce::juce_gui_basics
  	juce::juce_gui_extra
+	juce::juce_opengl
     PUBLIC
         juce::juce_recommended_config_flags
 )
