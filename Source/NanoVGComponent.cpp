@@ -7,7 +7,22 @@
 
 #if JUCE_MAC
 #include <nanovg_mtl.h>
+
+#elif JUCE_WINDOWS || JUCE_LINUX
+
+#ifndef NOMINMAX
+#   define NOMINMAX
 #endif
+
+#if JUCE_WINDOWS
+#include <Windows.h>
+#endif
+
+namespace juce {
+    extern ComponentPeer* createNonRepaintingEmbeddedWindowsPeer (Component&, void* parent);
+}
+
+#endif // JUCE_WINDOWS
 
 bool NanoVGComponent::isInitialised() const
 {
