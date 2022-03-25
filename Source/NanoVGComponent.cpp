@@ -349,7 +349,9 @@ void NanoVGComponent::Overlay::mouseMagnify (const juce::MouseEvent& event, floa
 
 void NanoVGComponent::attachTo (juce::Component* component)
 {
+#if NANOVG_GL2 || NANOVG_GL3 || NANOVG_GLES2 || NANOVG_GLES3
     openGLContext.setMultisamplingEnabled(true);
+#endif
     
     if (attachedComponent != nullptr)
     {
