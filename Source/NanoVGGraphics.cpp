@@ -4,7 +4,7 @@
 
 #include "NanoVGGraphics.h"
 
-#if NANOVG_METAL
+#if NANOVG_METAL_IMPLEMENTATION
 #include <nanovg_mtl.h>
 #else
 #include <nanovg_gl.h>
@@ -158,10 +158,10 @@ static constexpr int embeddedWindowEventMask = ExposureMask | StructureNotifyMas
 	//	printf("Could not init glew.\n");
 	//}
 
-#if NANOVG_METAL
+#if NANOVG_METAL_IMPLEMENTATION
     nvg = nvgCreateContext(nativeHandle, NVG_ANTIALIAS | NVG_TRIPLE_BUFFER, width, height);
 #else
-    nvg = nvgCreateContext(NVG_ANTIALIAS);
+    nvg = nvgCreateContext(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
 #endif
 
     nvgGlobalCompositeOperation(nvg, NVG_SOURCE_OVER);
@@ -235,7 +235,6 @@ juce::Rectangle<int> NanoVGGraphicsContext::getClipBounds() const
     float w = width;
     float h = height;
 
-
     nvgCurrentScissor (nvg, &x, &y, &w, &h);
     return juce::Rectangle<int>((int)x, (int)y, (int)w, (int)h);
 }
@@ -248,6 +247,7 @@ bool NanoVGGraphicsContext::isClipEmpty() const
     float h = -1.0f;
 
     nvgCurrentScissor (nvg, &x, &y, &w, &h);
+    
     return w < 0.0f || h < 0.0f;
 }
 

@@ -13,9 +13,11 @@ MainComponent::MainComponent()
     label.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(label);
     addAndMakeVisible(button);
+    
+    button.onClick = [](){
+        std::cout << "click!" << std::endl;
+    };
 
-    //setBackgroundColour (Colour(0x1F, 0x1F, 0x1F));
-    enableRenderStats();
     startPeriodicRepaint(2);
 }
 
@@ -26,6 +28,10 @@ MainComponent::~MainComponent()
 void MainComponent::paint (juce::Graphics& g)
 {
     g.fillAll(juce::Colours::rebeccapurple);
+    
+    //g.setColour(juce::Colours::green);
+    
+    //g.fillRect(getLocalBounds().reduced(50));
 }
 
 void MainComponent::resized()
