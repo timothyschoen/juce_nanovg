@@ -62,8 +62,6 @@ NanoVGComponent::NanoVGComponent()
     openGLContext.setOpenGLVersionRequired(juce::OpenGLContext::openGL3_2);
     openGLContext.setComponentPaintingEnabled(false);
     openGLContext.setMultisamplingEnabled(false);
-    
-    //openGLContext.attachTo (*this);
     openGLContext.setContinuousRepainting (true);
 #endif
 }
@@ -194,6 +192,7 @@ void NanoVGComponent::render()
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 #endif
     
+    nvgScissor(nvg, 0, 0, getWidth(), getHeight());
     nvgBeginFrame (nvg, getWidth(), getHeight(), scale);
     
     juce::MessageManager::Lock mmLock;
@@ -202,8 +201,8 @@ void NanoVGComponent::render()
         paintEntireComponent (g, true);
         //mmLock.exit();
 
-    //}
-    
+    //}/Users/timschoen/Projecten/juce_nanovg/Source/NanoVGGraphics.cpp
+    /*
     int x = 10, y = 10, w = 200, h = 200;
     float pos = 1.0f;
     
@@ -221,7 +220,7 @@ void NanoVGComponent::render()
     nvgBeginPath(nvg);
     nvgCircle(nvg, x+(int)(pos*w),cy, kr-0.5f);
     nvgStrokeColor(nvg, nvgRGBA(0,0,0,92));
-    nvgStroke(nvg);
+    nvgStroke(nvg); */
     
     nvgEndFrame (nvg);
 }

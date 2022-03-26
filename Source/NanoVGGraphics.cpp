@@ -154,8 +154,8 @@ bool NanoVGGraphicsContext::isClipEmpty() const
 {
     float x = 0.0f;
     float y = 0.0f;
-    float w = -1.0f;
-    float h = -1.0f;
+    float w = width;
+    float h = height;
 
     nvgCurrentScissor (nvg, &x, &y, &w, &h);
     
