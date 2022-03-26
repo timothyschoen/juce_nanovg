@@ -41,13 +41,15 @@ using namespace juce::gl;
     @note This is not a perfect translation of the JUCE
           graphics, but its still quite usable.
 */
+
+
+
 class NanoVGGraphicsContext : public juce::LowLevelGraphicsContext
 {
 public:
-    NanoVGGraphicsContext (void* nativeHandle, int width, int height);
+    NanoVGGraphicsContext (void* nativeHandle, int width, int height, float scale);
     ~NanoVGGraphicsContext();
 
-    // juce::LowLevelGraphicsContext
     bool isVectorDevice() const override;
     void setOrigin (juce::Point<int>) override;
     void addTransform (const juce::AffineTransform&) override;
@@ -76,6 +78,10 @@ public:
     void fillRect (const juce::Rectangle<int>&, bool) override;
     void fillRect (const juce::Rectangle<float>&) override;
     void fillRectList (const juce::RectangleList<float>&) override;
+
+    void setPath (const juce::Path& path, const juce::AffineTransform& transform);
+    
+    void strokePath (const juce::Path&, const juce::PathStrokeType&, const juce::AffineTransform&) override;
     void fillPath (const juce::Path&, const juce::AffineTransform&) override;
     void drawImage (const juce::Image&, const juce::AffineTransform&) override;
     void drawLine (const juce::Line<float>&) override;
@@ -85,11 +91,11 @@ public:
     void drawGlyph (int glyphNumber, const juce::AffineTransform&) override;
     bool drawTextLayout (const juce::AttributedString&, const juce::Rectangle<float>&) override;
 
-    void resized (int w, int h);
+    void resized (int w, int h, float scale);
 
     void removeCachedImages();
 
-    NVGcontext* getContext() { return nvg; }
+    NVGcontext* getContext() const { return nvg; };
 
     const static juce::String defaultTypefaceName;
 
@@ -105,13 +111,14 @@ private:
     int getNvgImageId (const juce::Image& image);
     void reduceImageCache();
 
-    NVGcontext* nvg{};
+    NVGcontext* nvg;
 
-    int width{};
-    int height{};
+    int width;
+    int height;
+    float scale = 1.0f;
 
-    juce::FillType fillType{};
-    juce::Font font{};
+    juce::FillType fillType;
+    juce::Font font;
 
     // Mapping glyph number to a character
     using GlyphToCharMap = std::map<int, wchar_t>;
@@ -119,8 +126,8 @@ private:
     GlyphToCharMap getGlyphToCharMapForFont (const juce::Font& f);
 
     // Mapping font names to glyph-to-character tables
-    std::map<juce::String, GlyphToCharMap> loadedFonts{};
-    const GlyphToCharMap* currentGlyphToCharMap{};
+    std::map<juce::String, GlyphToCharMap> loadedFonts;
+    const GlyphToCharMap* currentGlyphToCharMap;
 
     // Tracking images mapped tomtextures.
     struct NvgImage

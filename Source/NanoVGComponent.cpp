@@ -59,10 +59,15 @@ NanoVGComponent::NanoVGComponent()
 
 #elif NANOVG_GL_IMPLEMENTATION
     setCachedComponentImage (new RenderCache (*this));
+    
+#if NANOVG_GL3_IMPLEMENTATION || NANOVG_GLES3_IMPLEMENTATION
     openGLContext.setOpenGLVersionRequired(juce::OpenGLContext::openGL3_2);
+#elif NANOVG_GL2_IMPLEMENTATION || NANOVG_GLES2_IMPLEMENTATION
+    openGLContext.setOpenGLVersionRequired(juce::OpenGLContext::defaultGLVersion);
+#endif
     openGLContext.setComponentPaintingEnabled(false);
-    openGLContext.setMultisamplingEnabled(false);
-    openGLContext.setContinuousRepainting (true);
+    openGLContext.setMultisamplingEnabled(true);
+    openGLContext.setContinuousRepainting (false);
 #endif
 }
 
@@ -104,6 +109,7 @@ bool NanoVGComponent::RenderCache::invalidateAll()
 
 bool NanoVGComponent::RenderCache::invalidate (const juce::Rectangle<int>&)
 {
+    // TODO: more selective invalidation
     return invalidateAll();
 }
 
@@ -124,17 +130,15 @@ void NanoVGComponent::componentMovedOrResized (juce::Component& component, bool 
     
     if (wasResized && nvg) {
         nvgReset(nvg);
-        
-        nvgGraphicsContext->resized(getWidth(), getHeight());
     }
     
     if (auto* display {juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()})
         scale = display->scale;
+    
+    nvgGraphicsContext->resized(getWidth(), getHeight(), scale);
 
-    const auto width = uint32_t (scale * getWidth());
-    const auto height = uint32_t (scale * getHeight());
     #if NANOVG_METAL_IMPLEMENTATION
-      mnvgSetViewBounds(getPeer()->getNativeHandle(), width, height);
+      mnvgSetViewBounds(getPeer()->getNativeHandle(), scale * getWidth(), scale * getHeight());
     #endif
 }
 
@@ -142,11 +146,10 @@ void NanoVGComponent::componentMovedOrResized (juce::Component& component, bool 
 
 void NanoVGComponent::initialise()
 {
+    if (initialised)
+        return;
+    
     juce::MessageManager::callAsync([this](){
-        
-        if (initialised)
-            return;
-        
         if (getBounds().isEmpty())
         {
             // Component placement is not ready yet - postpone initialisation.
@@ -181,7 +184,7 @@ void NanoVGComponent::render()
         void* nativeHandle = nullptr;
         #endif
         
-        nvgGraphicsContext.reset (new NanoVGGraphicsContext (nativeHandle, (int)width, (int)height));
+        nvgGraphicsContext.reset (new NanoVGGraphicsContext (nativeHandle, (int)width, (int)height, scale));
         nvg = nvgGraphicsContext->getContext();
         
         //mainFrameBuffer = nvgCreateFramebuffer(nvg, width, height, 0);
@@ -192,7 +195,7 @@ void NanoVGComponent::render()
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 #endif
     
-    nvgScissor(nvg, 0, 0, getWidth(), getHeight());
+    //nvgScissor(nvg, 0, 0, getWidth(), getHeight());
     nvgBeginFrame (nvg, getWidth(), getHeight(), scale);
     
     juce::MessageManager::Lock mmLock;
@@ -200,9 +203,12 @@ void NanoVGComponent::render()
         juce::Graphics g (*nvgGraphicsContext.get());
         paintEntireComponent (g, true);
         //mmLock.exit();
+    
+#if NANOVG_GL_IMPLEMENTATION
+    if (!openGLContext.isActive())
+        openGLContext.makeActive();
+#endif
 
-    //}/Users/timschoen/Projecten/juce_nanovg/Source/NanoVGGraphics.cpp
-    /*
     int x = 10, y = 10, w = 200, h = 200;
     float pos = 1.0f;
     
@@ -220,9 +226,11 @@ void NanoVGComponent::render()
     nvgBeginPath(nvg);
     nvgCircle(nvg, x+(int)(pos*w),cy, kr-0.5f);
     nvgStrokeColor(nvg, nvgRGBA(0,0,0,92));
-    nvgStroke(nvg); */
+    nvgStroke(nvg);
     
     nvgEndFrame (nvg);
+    
+    //openGLContext.swapBuffers();
 }
 
 void NanoVGComponent::shutdown()

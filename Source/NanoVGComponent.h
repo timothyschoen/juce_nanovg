@@ -65,8 +65,6 @@ private:
 
     NVGcontext* nvg {nullptr};
     std::unique_ptr<NanoVGGraphicsContext> nvgGraphicsContext {nullptr};
-
-    juce::Colour backgroundColour {};
     
     void initialise();
     void render();

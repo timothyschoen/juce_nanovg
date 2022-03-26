@@ -65,9 +65,10 @@ const int NanoVGGraphicsContext::imageCacheSize = 256;
 //==============================================================================
 
 
-NanoVGGraphicsContext::NanoVGGraphicsContext (void* nativeHandle, int w, int h) :
+NanoVGGraphicsContext::NanoVGGraphicsContext (void* nativeHandle, int w, int h, float pixelScale) :
       width {w},
-      height {h}
+      height {h},
+      scale{pixelScale}
 {
 #if NANOVG_METAL_IMPLEMENTATION
     nvg = nvgCreateContext(nativeHandle, NVG_ANTIALIAS | NVG_TRIPLE_BUFFER, width, height);
@@ -98,7 +99,7 @@ void NanoVGGraphicsContext::addTransform (const juce::AffineTransform& t)
     nvgTransform (nvg, t.mat00, t.mat10, t.mat01, t.mat11, t.mat02, t.mat12);
 }
 
-float NanoVGGraphicsContext::getPhysicalPixelScaleFactor() { return 1.0f; }
+float NanoVGGraphicsContext::getPhysicalPixelScaleFactor() { return scale; }
 
 bool NanoVGGraphicsContext::clipToRectangle (const juce::Rectangle<int>& rect)
 {
@@ -220,7 +221,32 @@ void NanoVGGraphicsContext::fillRectList (const juce::RectangleList<float>& rect
         fillRect (rect);
 }
 
-void NanoVGGraphicsContext::fillPath (const juce::Path& path, const juce::AffineTransform& transform)
+void NanoVGGraphicsContext::strokePath (const juce::Path& path, const juce::PathStrokeType& strokeType, const juce::AffineTransform& transform) {
+    
+       // First set options
+    switch (strokeType.getEndStyle())
+    {
+        case juce::PathStrokeType::EndCapStyle::butt:     nvgLineCap(nvg, NVG_BUTT);     break;
+        case juce::PathStrokeType::EndCapStyle::rounded:  nvgLineCap(nvg, NVG_ROUND);    break;
+        case juce::PathStrokeType::EndCapStyle::square:   nvgLineCap(nvg, NVG_SQUARE);   break;
+    }
+   
+    switch (strokeType.getJointStyle())
+    {
+        case juce::PathStrokeType::JointStyle::mitered: nvgLineJoin(nvg, NVG_MITER);   break;
+        case juce::PathStrokeType::JointStyle::curved:  nvgLineJoin(nvg, NVG_ROUND);   break;
+        case juce::PathStrokeType::JointStyle::beveled: nvgLineJoin(nvg, NVG_BEVEL);   break;
+    }
+    
+
+    nvgStrokeWidth(nvg, strokeType.getStrokeThickness());
+    nvgPathWinding(nvg, NVG_CCW);
+    setPath(path, transform);
+    applyStrokeType();
+    nvgStroke(nvg);
+};
+
+void NanoVGGraphicsContext::setPath (const juce::Path& path, const juce::AffineTransform& transform)
 {
     juce::Path p (path);
     p.applyTransform (transform);
@@ -228,7 +254,7 @@ void NanoVGGraphicsContext::fillPath (const juce::Path& path, const juce::Affine
     nvgBeginPath (nvg);
 
     juce::Path::Iterator i (p);
-
+    
     // Flag is used to flip winding when drawing shapes with holes.
     bool solid = true;
 
@@ -258,6 +284,11 @@ void NanoVGGraphicsContext::fillPath (const juce::Path& path, const juce::Affine
         }
     }
 
+}
+
+void NanoVGGraphicsContext::fillPath (const juce::Path& path, const juce::AffineTransform& transform)
+{
+    setPath(path, transform);
     applyFillType();
     nvgFill (nvg);
 }
@@ -371,8 +402,9 @@ bool NanoVGGraphicsContext::drawTextLayout (const juce::AttributedString& str, c
     return true;
 }
 
-void NanoVGGraphicsContext::resized(int w, int h)
+void NanoVGGraphicsContext::resized(int w, int h, float pixelScale)
 {
+    scale = pixelScale;
     width = w;
     height = h;
 }
@@ -395,7 +427,7 @@ bool NanoVGGraphicsContext::loadFontFromResources (const juce::String& typefaceN
         return true; // Already loaded
     }
 
-    int size{};
+    int size;
     juce::String resName {typefaceName + ".ttf"};
     const auto* ptr {getResourceByFileName(resName, size)};
 
