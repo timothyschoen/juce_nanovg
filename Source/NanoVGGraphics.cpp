@@ -10,32 +10,6 @@
 #include <nanovg_gl.h>
 #endif
 
-#if JUCE_LINUX
-
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
-#include <X11/Xresource.h>
-#include <X11/Xutil.h>
-#include <X11/Xmd.h>
-#include <X11/keysym.h>
-#include <X11/XKBlib.h>
-#include <X11/cursorfont.h>
-#include <X11/extensions/XShm.h>
-#include <sys/shm.h>
-#include <sys/ipc.h>
-#include <unistd.h>
-#include <X11/extensions/Xrandr.h>
-#include <X11/extensions/Xinerama.h>
-#include <X11/Xcursor/Xcursor.h>
-#include <juce_gui_basics/native/x11/juce_linux_XWindowSystem.h>
-#include <juce_gui_basics/native/x11/juce_linux_X11_Symbols.h>
-
-namespace juce
-{
-    extern XContext windowHandleXContext;
-}
-
-#endif
 //==============================================================================
 
 
@@ -95,69 +69,6 @@ NanoVGGraphicsContext::NanoVGGraphicsContext (void* nativeHandle, int w, int h) 
       width {w},
       height {h}
 {
-
-// Move to component?
-/*
-#if JUCE_LINUX
-static constexpr int embeddedWindowEventMask = ExposureMask | StructureNotifyMask;
-    //ScopedXLock xlock;
-            auto* display = juce::XWindowSystem::getInstance()->getDisplay();
-            XSync (display, False);
-            XVisualInfo* bestVisual;
-            auto windowH = (::Window)nativeHandle;
-
-            GLint attribs[] =
-            {
-                GLX_RGBA,
-                GLX_DOUBLEBUFFER,
-                None
-            };
-
-            bestVisual = glXChooseVisual (display, DefaultScreen (display), attribs);
-            if (bestVisual == nullptr)
-                return;
-
-            auto colourMap = juce::X11Symbols::getInstance()->xCreateColormap (display, windowH, bestVisual->visual, AllocNone);
-
-            XSetWindowAttributes swa;
-            swa.colormap = colourMap;
-            swa.border_pixel = 0;
-            swa.event_mask = embeddedWindowEventMask;
-
-            auto* peer = comp.getPeer();
-            jassert (peer != nullptr);
-
-            auto glBounds = comp.getTopLevelComponent()
-                               ->getLocalArea (&comp, comp.getLocalBounds());
-
-            glBounds = juce::Desktop::getInstance().getDisplays().logicalToPhysical (glBounds);
-
-            embeddedWindow = juce::X11Symbols::getInstance()->xCreateWindow (display, windowH, glBounds.getX(), glBounds.getY(), (unsigned int) juce::jmax (1, glBounds.getWidth()), (unsigned int) juce::jmax (1, glBounds.getHeight()), 0, bestVisual->depth, InputOutput, bestVisual->visual, CWBorderPixel | CWColormap | CWEventMask, &swa);
-
-         juce::X11Symbols::getInstance()->xSaveContext (display, (XID) embeddedWindow, juce::windowHandleXContext, (XPointer) peer);
-
-        juce::X11Symbols::getInstance()->xMapWindow (display, embeddedWindow);
-        juce::X11Symbols::getInstance()->xFreeColormap (display, colourMap);
-
-        juce::X11Symbols::getInstance()->xSync (display, False);
-
-        std::cout << "X11 init" << std::endl;
-
-        auto* renderContext = glXCreateContext (display, bestVisual, (GLXContext)NULL, GL_TRUE);
-        glXMakeCurrent(display, windowH, renderContext);
-
-        glewExperimental = GL_TRUE;
-	if(glewInit() != GLEW_OK) {
-		printf("Could not init glew.\n");
-	}
-	// GLEW generates GL error because it calls glGetString(GL_EXTENSIONS), we'll consume it here.
-	glGetError();
- #endif */
-
- 	//if(glewInit() != GLEW_OK) {
-	//	printf("Could not init glew.\n");
-	//}
-
 #if NANOVG_METAL_IMPLEMENTATION
     nvg = nvgCreateContext(nativeHandle, NVG_ANTIALIAS | NVG_TRIPLE_BUFFER, width, height);
 #else
