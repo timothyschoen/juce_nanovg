@@ -16,7 +16,7 @@ label({}, "Drawing with NanoVG -> Metal works!"),
     setSize (600, 400);
 
     label.setJustificationType(juce::Justification::centred);
-    //addAndMakeVisible(label);
+    addAndMakeVisible(label);
     addAndMakeVisible(button);
     
     button.onClick = [this](){
