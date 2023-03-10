@@ -101,6 +101,7 @@ public:
         Desktop::getInstance().setKioskModeComponent (mainWindow.get(), false);
        #endif
 
+        mainWindow->setUsingNativeTitleBar (true);
         mainWindow->setVisible (true);
     }
 

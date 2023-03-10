@@ -3,7 +3,7 @@
 //
 
 #pragma once
-
+#include <juce_gui_basics/juce_gui_basics.h>
 #include "NanoVGGraphics.h"
 
 /**
@@ -17,12 +17,13 @@ class MNVGframebuffer;
 
 class NanoVGComponent :
 #if NANOVG_METAL_IMPLEMENTATION
-public juce::Component,
+    public juce::Component,
 #elif NANOVG_GL_IMPLEMENTATION
-public juce::OpenGLAppComponent,
+    public juce::OpenGLAppComponent,
 #endif
-public juce::ComponentListener, public juce::Timer
+    public juce::Timer
 {
+public:
     class RenderCache : public juce::CachedComponentImage,
     private juce::AsyncUpdater
     {
@@ -43,31 +44,24 @@ public juce::ComponentListener, public juce::Timer
 
     //------------------------------------------------------
 public:
-
     NanoVGComponent();
     ~NanoVGComponent();
+    void paint(juce::Graphics&) override {}
+    void resized() override;
 
-    void startPeriodicRepaint(int fps = 30);
-    void stopPeriodicRepaint();
+protected:
+    std::unique_ptr<NanoVGGraphicsContext> nvgGraphicsContext;
+    std::atomic<bool> initialised = false;
 
 private:
-
-    friend class NanoVGComponent::RenderCache;
-
     void paintComponent();
-
     void timerCallback() override;
 
-    bool currentlyPainting {false};
-    bool showRenderStats {false};
+    bool currentlyPainting = false;
+    bool showRenderStats = false;
 
-    MNVGframebuffer* mainFrameBuffer = nullptr;
-
-    NVGcontext* nvg {nullptr};
-    std::unique_ptr<NanoVGGraphicsContext> nvgGraphicsContext {nullptr};
-    
     void initialise();
-    void render();
+    virtual void render() = 0;
     void shutdown();
 
     //==========================================================================
@@ -75,18 +69,7 @@ private:
     /** Detach the context from the currently attached component. */
     void detach();
 
-    void componentMovedOrResized (juce::Component& component, bool wasMoved, bool wasResized) override;
-
-    private:
-
-    #if JUCE_WINDOWS || JUCE_LINUX
+#if JUCE_WINDOWS || JUCE_LINUX
     void updateWindowPosition (juce::Rectangle<int> bounds);
-    #endif
-
-
-    std::atomic<bool> initialised {false};
-    float scale {1.0f};
-
-    juce::Component* attachedComponent {nullptr};
+#endif
 };
-

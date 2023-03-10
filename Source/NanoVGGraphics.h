@@ -3,8 +3,13 @@
 //
 
 #pragma once
-
-#include <JuceHeader.h>
+#include <juce_gui_extra/juce_gui_extra.h>
+#include <juce_opengl/juce_opengl.h>
+#if NANOVG_METAL_IMPLEMENTATION
+#include <nanovg_mtl.h>
+#else
+#include <nanovg_gl.h>
+#endif
 
 
 using namespace juce::gl;
@@ -12,27 +17,27 @@ using namespace juce::gl;
 #include <nanovg.h>
 
 #if defined NANOVG_GL2_IMPLEMENTATION
-  #define NANOVG_GL_IMPLEMENTATION 1
-  #define nvgCreateContext(flags) nvgCreateGL2(flags)
-  #define nvgDeleteContext(context) nvgDeleteGL2(context)
+    #define NANOVG_GL_IMPLEMENTATION 1
+    #define nvgCreateContext(flags) nvgCreateGL2(flags)
+    #define nvgDeleteContext(context) nvgDeleteGL2(context)
 #elif defined NANOVG_GLES2_IMPLEMENTATION
-  #define NANOVG_GL_IMPLEMENTATION 1
-  #define nvgCreateContext(flags) nvgCreateGLES2(flags)
-  #define nvgDeleteContext(context) nvgDeleteGLES2(context)
+    #define NANOVG_GL_IMPLEMENTATION 1
+    #define nvgCreateContext(flags) nvgCreateGLES2(flags)
+    #define nvgDeleteContext(context) nvgDeleteGLES2(context)
 #elif defined NANOVG_GL3_IMPLEMENTATION
-  #define NANOVG_GL_IMPLEMENTATION 1
-  #define nvgCreateContext(flags) nvgCreateGL3(flags)
-  #define nvgDeleteContext(context) nvgDeleteGL3(context)
+    #define NANOVG_GL_IMPLEMENTATION 1
+    #define nvgCreateContext(flags) nvgCreateGL3(flags)
+    #define nvgDeleteContext(context) nvgDeleteGL3(context)
 #elif defined NANOVG_GLES3_IMPLEMENTATION
-  #define NANOVG_GL_IMPLEMENTATION 1
-  #define nvgCreateContext(flags) nvgCreateGLES3(flags)
-  #define nvgDeleteContext(context) nvgDeleteGLES3(context)
+    #define NANOVG_GL_IMPLEMENTATION 1
+    #define nvgCreateContext(flags) nvgCreateGLES3(flags)
+    #define nvgDeleteContext(context) nvgDeleteGLES3(context)
 #elif defined NANOVG_METAL_IMPLEMENTATION
-  #define nvgCreateContext(layer, flags, w, h) mnvgCreateContext(layer, flags, w, h)
-  #define nvgDeleteContext(context) nvgDeleteMTL(context)
-  #define nvgBindFramebuffer(fb) mnvgBindFramebuffer(fb)
-  #define nvgCreateFramebuffer(ctx, w, h, flags) mnvgCreateFramebuffer(ctx, w, h, flags)
-  #define nvgDeleteFramebuffer(fb) mnvgDeleteFramebuffer(fb)
+    #define nvgCreateContext(layer, flags, w, h) mnvgCreateContext(layer, flags, w, h)
+    #define nvgDeleteContext(context) nvgDeleteMTL(context)
+    #define nvgBindFramebuffer(fb) mnvgBindFramebuffer(fb)
+    #define nvgCreateFramebuffer(ctx, w, h, flags) mnvgCreateFramebuffer(ctx, w, h, flags)
+    #define nvgDeleteFramebuffer(fb) mnvgDeleteFramebuffer(fb)
 #endif
 
 /**
@@ -43,11 +48,10 @@ using namespace juce::gl;
 */
 
 
-
 class NanoVGGraphicsContext : public juce::LowLevelGraphicsContext
 {
 public:
-    NanoVGGraphicsContext (void* nativeHandle, int width, int height, float scale);
+    NanoVGGraphicsContext (void* nativeHandle, int width, int height);
     ~NanoVGGraphicsContext();
 
     bool isVectorDevice() const override;
@@ -91,18 +95,16 @@ public:
     void drawGlyph (int glyphNumber, const juce::AffineTransform&) override;
     bool drawTextLayout (const juce::AttributedString&, const juce::Rectangle<float>&) override;
 
-    void resized (int w, int h, float scale);
+    void resized (int w, int h);
 
     void removeCachedImages();
 
     NVGcontext* getContext() const { return nvg; };
 
     const static juce::String defaultTypefaceName;
-
     const static int imageCacheSize;
 
 private:
-
     bool loadFontFromResources (const juce::String& typefaceName);
     void applyFillType();
     void applyStrokeType();
@@ -115,7 +117,6 @@ private:
 
     int width;
     int height;
-    float scale = 1.0f;
 
     juce::FillType fillType;
     juce::Font font;
@@ -135,7 +136,6 @@ private:
         int id {-1};            ///< Image/texture ID.
         int accessCounter {0};  ///< Usage counter.
     };
-
 
     std::map<juce::uint64, NvgImage> images;
 };

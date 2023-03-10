@@ -3,12 +3,7 @@
 //
 
 #include "NanoVGGraphics.h"
-
-#if NANOVG_METAL_IMPLEMENTATION
-#include <nanovg_mtl.h>
-#else
-#include <nanovg_gl.h>
-#endif
+#include <BinaryData.h>
 
 //==============================================================================
 
@@ -16,7 +11,7 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 //#include <stb/stb_truetype.h>
 
-extern "C"{
+extern "C" {
 void nvgCurrentScissor(NVGcontext* ctx, float* x, float* y, float* w, float* h);
 }
 
@@ -64,15 +59,15 @@ const int NanoVGGraphicsContext::imageCacheSize = 256;
 
 //==============================================================================
 
-
-NanoVGGraphicsContext::NanoVGGraphicsContext (void* nativeHandle, int w, int h, float pixelScale) :
-      width {w},
-      height {h},
-      scale{pixelScale}
+NanoVGGraphicsContext::NanoVGGraphicsContext (void* nativeHandle, int w, int h)
+    : width {w}
+    , height {h}
 {
 #if NANOVG_METAL_IMPLEMENTATION
+    DBG("Using Metal");
     nvg = nvgCreateContext(nativeHandle, NVG_ANTIALIAS | NVG_TRIPLE_BUFFER, width, height);
 #else
+    DBG("Using OpenGL");
     nvg = nvgCreateContext(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
 #endif
 
@@ -99,7 +94,7 @@ void NanoVGGraphicsContext::addTransform (const juce::AffineTransform& t)
     nvgTransform (nvg, t.mat00, t.mat10, t.mat01, t.mat11, t.mat02, t.mat12);
 }
 
-float NanoVGGraphicsContext::getPhysicalPixelScaleFactor() { return scale; }
+float NanoVGGraphicsContext::getPhysicalPixelScaleFactor() { return 1.0f; }
 
 bool NanoVGGraphicsContext::clipToRectangle (const juce::Rectangle<int>& rect)
 {
@@ -402,9 +397,8 @@ bool NanoVGGraphicsContext::drawTextLayout (const juce::AttributedString& str, c
     return true;
 }
 
-void NanoVGGraphicsContext::resized(int w, int h, float pixelScale)
+void NanoVGGraphicsContext::resized(int w, int h)
 {
-    scale = pixelScale;
     width = w;
     height = h;
 }
@@ -454,7 +448,6 @@ bool NanoVGGraphicsContext::loadFontFromResources (const juce::String& typefaceN
     return false;
 
 }
-
 
 void NanoVGGraphicsContext::applyFillType()
 {
