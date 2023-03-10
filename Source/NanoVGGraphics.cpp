@@ -11,9 +11,6 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 //#include <stb/stb_truetype.h>
 
-extern "C" {
-void nvgCurrentScissor(NVGcontext* ctx, float* x, float* y, float* w, float* h);
-}
 
 //==============================================================================
 

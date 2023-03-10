@@ -13,7 +13,7 @@
           rendered with nanovg as well.
 */
 
-class MNVGframebuffer;
+struct MNVGframebuffer;
 
 class NanoVGComponent :
 #if NANOVG_METAL_IMPLEMENTATION
@@ -29,7 +29,7 @@ public:
     {
     public:
         RenderCache (NanoVGComponent& comp);
-        ~RenderCache();
+        ~RenderCache() override;
 
         void paint (juce::Graphics&) override;
         bool invalidateAll() override;
@@ -45,7 +45,7 @@ public:
     //------------------------------------------------------
 public:
     NanoVGComponent();
-    ~NanoVGComponent();
+    ~NanoVGComponent() override;
     void paint(juce::Graphics&) override {}
     void resized() override;
 

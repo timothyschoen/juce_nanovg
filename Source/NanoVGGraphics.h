@@ -5,11 +5,7 @@
 #pragma once
 #include <juce_gui_extra/juce_gui_extra.h>
 #include <juce_opengl/juce_opengl.h>
-#if NANOVG_METAL_IMPLEMENTATION
-#include <nanovg_mtl.h>
-#else
-#include <nanovg_gl.h>
-#endif
+#include "nanovg_compat/nanovg_compat.h"
 
 
 using namespace juce::gl;
@@ -50,7 +46,7 @@ class NanoVGGraphicsContext : public juce::LowLevelGraphicsContext
 {
 public:
     NanoVGGraphicsContext (void* nativeHandle, int width, int height);
-    ~NanoVGGraphicsContext();
+    ~NanoVGGraphicsContext() override;
 
     bool isVectorDevice() const override;
     void setOrigin (juce::Point<int>) override;
@@ -97,7 +93,7 @@ public:
 
     void removeCachedImages();
 
-    NVGcontext* getContext() const { return nvg; };
+    NVGcontext* getContext() const { return nvg; }
 
     const static juce::String defaultTypefaceName;
     const static int imageCacheSize;

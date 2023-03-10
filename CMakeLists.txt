@@ -9,46 +9,57 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-Symbolic")
 endif()
 
-# JUCE
-add_subdirectory(modules/JUCE)
 
-# nanovg
-set(NANOVG_DIR Libraries/nanovg)
-if(APPLE)
-    file(GLOB_RECURSE NANOVG_SRC
-        ${NANOVG_DIR}/*.h
-        ${NANOVG_DIR}/*.c
-        ${NANOVG_DIR}/*.m
-    )
-else()
-    file(GLOB_RECURSE NANOVG_SRC
-        ${NANOVG_DIR}/*.h
-        ${NANOVG_DIR}/*.c
-    )
-endif()
-add_library(nanovg STATIC ${NANOVG_SRC})
-target_include_directories(nanovg PUBLIC ${NANOVG_DIR})
-
-# enable automatic reference counting, needed for nvg_metal
-if(APPLE)
-set_property (TARGET nanovg APPEND_STRING PROPERTY
-              COMPILE_FLAGS "-fobjc-arc")
-endif()
-#-----------------------------------------------------------
+#-------- JUCE --------
 
 # juce_add_gui_app(${PROJECT_NAME}
 #     PRODUCT_NAME "Test NanoVG"
 #     VERSION "1.0.0"
 #     COMPANY_NAME "Arthur Benilov and Timothy Schoen"
 # )
+
+add_subdirectory(modules/JUCE)
+
 juce_add_plugin(${PROJECT_NAME}
     VERSION ${PROJECT_VERSION}
     FORMATS AU VST3 Standalone
-    PRODUCT_NAME ${PROJECT_NAME}
-)
+    PRODUCT_NAME ${PROJECT_NAME})
 
-file(GLOB_RECURSE res "${CMAKE_CURRENT_SOURCE_DIR}/Resources/*.*")
-juce_add_binary_data(staticFiles SOURCES ${res})
+juce_add_binary_data(staticFiles SOURCES
+    "${PROJECT_SOURCE_DIR}/Resources/Lucida Grande-Regular.ttf"
+    ${PROJECT_SOURCE_DIR}/Resources/Verdana-Regular.ttf)
+
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        staticFiles
+        juce::juce_audio_utils
+        juce::juce_gui_basics
+        juce::juce_opengl
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_lto_flags
+        juce::juce_recommended_warning_flags)
+
+#-------- nanovg --------
+
+
+set(NANOVG_SRC ${CMAKE_CURRENT_SOURCE_DIR}/Source/nanovg_compat/nanovg_compat.c)
+if(APPLE)
+    list(APPEND NANOVG_SRC ${CMAKE_CURRENT_SOURCE_DIR}/Source/nanovg_compat/nanovg_compat.m)
+endif()
+
+add_library(nanovg STATIC ${NANOVG_SRC})
+target_include_directories(nanovg
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/modules/nanovg/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/modules/MetalNanoVG/src)
+# enable automatic reference counting, needed for nvg_metal
+if(APPLE)
+    set_property (TARGET nanovg APPEND_STRING PROPERTY
+                  COMPILE_FLAGS "-fobjc-arc")
+endif()
+
+#---------------------
 
 target_compile_definitions(${PROJECT_NAME}
     PUBLIC
@@ -56,11 +67,11 @@ target_compile_definitions(${PROJECT_NAME}
         JUCE_VST3_CAN_REPLACE_VST2=0
         DONT_SET_USING_JUCE_NAMESPACE=1)
 if(APPLE)
- target_compile_definitions(${PROJECT_NAME} PUBLIC NANOVG_METAL_IMPLEMENTATION)
- target_compile_definitions(nanovg PRIVATE NANOVG_GL2_IMPLEMENTATION)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC NANOVG_METAL_IMPLEMENTATION)
+    target_compile_definitions(nanovg PRIVATE NANOVG_GL2_IMPLEMENTATION)
 else()
-  target_compile_definitions(${PROJECT_NAME} PUBLIC NANOVG_GLES2_IMPLEMENTATION)
-  target_compile_definitions(nanovg PUBLIC NANOVG_GLES2_IMPLEMENTATION)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC NANOVG_GLES2_IMPLEMENTATION)
+    target_compile_definitions(nanovg PUBLIC NANOVG_GLES2_IMPLEMENTATION)
 endif()
 
 
@@ -80,7 +91,8 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/modules/JUCE/modules
-        ${CMAKE_CURRENT_SOURCE_DIR}/Libraries/nanovg/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/modules/nanovg/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/modules/MetalNanoVG/src
         ${CMAKE_CURRENT_SOURCE_DIR}/Source)
 
 target_sources(${PROJECT_NAME}

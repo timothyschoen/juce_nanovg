@@ -1,3 +1,9 @@
 [submodule "modules/JUCE"]
 	path = modules/JUCE
 	url = https://github.com/juce-framework/JUCE.git
+[submodule "modules/nanovg"]
+	path = modules/nanovg
+	url = https://github.com/memononen/nanovg.git
+[submodule "modules/MetalNanoVG"]
+	path = modules/MetalNanoVG
+	url = https://github.com/ollix/MetalNanoVG.git
