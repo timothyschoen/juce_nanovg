@@ -10,7 +10,7 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
 endif()
 
 # JUCE
-add_subdirectory(Libraries/JUCE)
+add_subdirectory(modules/JUCE)
 
 # nanovg
 set(NANOVG_DIR Libraries/nanovg)
@@ -79,7 +79,7 @@ target_link_libraries(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/Libraries/JUCE/modules
+        ${CMAKE_CURRENT_SOURCE_DIR}/modules/JUCE/modules
         ${CMAKE_CURRENT_SOURCE_DIR}/Libraries/nanovg/src
         ${CMAKE_CURRENT_SOURCE_DIR}/Source)
 

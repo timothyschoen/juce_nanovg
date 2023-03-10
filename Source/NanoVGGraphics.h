@@ -14,8 +14,6 @@
 
 using namespace juce::gl;
 
-#include <nanovg.h>
-
 #if defined NANOVG_GL2_IMPLEMENTATION
     #define NANOVG_GL_IMPLEMENTATION 1
     #define nvgCreateContext(flags) nvgCreateGL2(flags)
@@ -85,7 +83,7 @@ public:
 
     void setPath (const juce::Path& path, const juce::AffineTransform& transform);
     
-    void strokePath (const juce::Path&, const juce::PathStrokeType&, const juce::AffineTransform&) override;
+    void strokePath (const juce::Path&, const juce::PathStrokeType&, const juce::AffineTransform&);
     void fillPath (const juce::Path&, const juce::AffineTransform&) override;
     void drawImage (const juce::Image&, const juce::AffineTransform&) override;
     void drawLine (const juce::Line<float>&) override;

@@ -7,6 +7,11 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 {
     juce::ignoreUnused (processorRef);
 
+    if (auto* window = juce::TopLevelWindow::getTopLevelWindow(0))
+    {
+        window->setUsingNativeTitleBar(true);
+    }
+
     addChildComponent(mainComp);
 
     // Make sure that before the constructor has finished, you've set the
