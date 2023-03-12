@@ -3,12 +3,8 @@
 //
 
 #pragma once
-#include <juce_gui_extra/juce_gui_extra.h>
-#include <juce_opengl/juce_opengl.h>
 #include "nanovg_compat/nanovg_compat.h"
-
-
-using namespace juce::gl;
+#include <juce_opengl/juce_opengl.h>
 
 #if defined NANOVG_GL2_IMPLEMENTATION
     #define NANOVG_GL_IMPLEMENTATION 1
@@ -41,11 +37,10 @@ using namespace juce::gl;
           graphics, but its still quite usable.
 */
 
-
 class NanoVGGraphicsContext : public juce::LowLevelGraphicsContext
 {
 public:
-    NanoVGGraphicsContext (void* nativeHandle, int width, int height);
+    NanoVGGraphicsContext (void* nativeHandle, int width, int height, float scale);
     ~NanoVGGraphicsContext() override;
 
     bool isVectorDevice() const override;
@@ -78,7 +73,7 @@ public:
     void fillRectList (const juce::RectangleList<float>&) override;
 
     void setPath (const juce::Path& path, const juce::AffineTransform& transform);
-    
+
     void strokePath (const juce::Path&, const juce::PathStrokeType&, const juce::AffineTransform&);
     void fillPath (const juce::Path&, const juce::AffineTransform&) override;
     void drawImage (const juce::Image&, const juce::AffineTransform&) override;
@@ -89,8 +84,7 @@ public:
     void drawGlyph (int glyphNumber, const juce::AffineTransform&) override;
     bool drawTextLayout (const juce::AttributedString&, const juce::Rectangle<float>&) override;
 
-    void resized (int w, int h);
-
+    void resized (int w, int h, float scale);
     void removeCachedImages();
 
     NVGcontext* getContext() const { return nvg; }
@@ -111,6 +105,7 @@ private:
 
     int width;
     int height;
+    float scale = 1.0f;
 
     juce::FillType fillType;
     juce::Font font;

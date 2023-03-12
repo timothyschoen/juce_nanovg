@@ -3,7 +3,6 @@
 //
 
 #pragma once
-#include <juce_gui_basics/juce_gui_basics.h>
 #include "NanoVGGraphics.h"
 
 /**
@@ -21,11 +20,45 @@ class NanoVGComponent :
 #elif NANOVG_GL_IMPLEMENTATION
     public juce::OpenGLAppComponent,
 #endif
-    public juce::Timer
+    public juce::ComponentListener, public juce::Timer
 {
 public:
-    class RenderCache : public juce::CachedComponentImage,
-    private juce::AsyncUpdater
+    NanoVGComponent();
+    ~NanoVGComponent() override;
+
+    NanoVGGraphicsContext* getNVGGraphicsContext() noexcept { return nvgGraphicsContext.get(); }
+
+private:
+    void paintComponent();
+    void timerCallback() override;
+
+    bool currentlyPainting {false};
+    bool showRenderStats {false};
+
+    MNVGframebuffer* mainFrameBuffer = nullptr;
+
+    std::unique_ptr<NanoVGGraphicsContext> nvgGraphicsContext {nullptr};
+
+    void initialise();
+    void render();
+    void shutdown();
+
+    //==========================================================================
+
+    /** Detach the context from the currently attached component. */
+    void detach();
+
+    void componentMovedOrResized (juce::Component& component, bool wasMoved, bool wasResized) override;
+
+#if JUCE_WINDOWS || JUCE_LINUX
+    void updateWindowPosition (juce::Rectangle<int> bounds);
+#endif
+
+    //==========================================================================
+
+    class RenderCache
+        : public juce::CachedComponentImage
+        , private juce::AsyncUpdater
     {
     public:
         RenderCache (NanoVGComponent& comp);
@@ -42,34 +75,8 @@ public:
         NanoVGComponent& component;
     };
 
-    //------------------------------------------------------
-public:
-    NanoVGComponent();
-    ~NanoVGComponent() override;
-    void paint(juce::Graphics&) override {}
-    void resized() override;
-
-protected:
-    std::unique_ptr<NanoVGGraphicsContext> nvgGraphicsContext;
-    std::atomic<bool> initialised = false;
-
-private:
-    void paintComponent();
-    void timerCallback() override;
-
-    bool currentlyPainting = false;
-    bool showRenderStats = false;
-
-    void initialise();
-    virtual void render() = 0;
-    void shutdown();
-
     //==========================================================================
 
-    /** Detach the context from the currently attached component. */
-    void detach();
-
-#if JUCE_WINDOWS || JUCE_LINUX
-    void updateWindowPosition (juce::Rectangle<int> bounds);
-#endif
+    std::atomic<bool> initialised {false};
+    float scale {1.0f};
 };

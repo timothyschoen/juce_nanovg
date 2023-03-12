@@ -1,63 +1,16 @@
 //
 //  Copyright (C) 2022 Arthur Benilov <arthur.benilov@gmail.com> and Timothy Schoen <timschoen123@gmail.com>
 //
-
 #include "NanoVGComponent.h"
 
-#if NANOVG_METAL_IMPLEMENTATION
-#include <nanovg_mtl.h>
-#endif
-
-
-void NanoVGComponent::paintComponent()
-{
-    if (currentlyPainting)
-        return;
-
-    currentlyPainting = true;
-
-    if (!initialised)
-    {
-        initialise();
-    }
-    else
-    {
-        if (nvgGraphicsContext == nullptr)
-        {
-            const float width = getWidth();
-            const float height = getHeight();
-
-            #if NANOVG_METAL_IMPLEMENTATION
-            void* nativeHandle = getPeer()->getNativeHandle();
-            #else
-            void* nativeHandle = nullptr;
-            #endif
-
-            nvgGraphicsContext.reset (new NanoVGGraphicsContext (nativeHandle, (int)width, (int)height));
-        }
-
-        #if NANOVG_METAL_IMPLEMENTATION
-        render();
-        #else
-        openGLContext.triggerRepaint();
-        #endif
-    }
-
-    currentlyPainting = false;
-}
-
-void NanoVGComponent::timerCallback()
-{
-    repaint();
-}
 
 NanoVGComponent::NanoVGComponent()
 {
     setOpaque (true);
+    addComponentListener (this);
 
 #if NANOVG_METAL_IMPLEMENTATION
     setCachedComponentImage (new RenderCache (*this));
-
 #elif NANOVG_GL_IMPLEMENTATION
     setCachedComponentImage (new RenderCache (*this));
 
@@ -74,6 +27,8 @@ NanoVGComponent::NanoVGComponent()
 
 NanoVGComponent::~NanoVGComponent()
 {
+    removeComponentListener(this);
+
 #if NANOVG_GL_IMPLEMENTATION
     openGLContext.detach();
 #endif
@@ -81,28 +36,77 @@ NanoVGComponent::~NanoVGComponent()
     if (nvgGraphicsContext != nullptr)
     {
         nvgGraphicsContext->removeCachedImages();
+        //nvgDeleteContext(nvg);
     }
 }
 
-void NanoVGComponent::resized ()
+void NanoVGComponent::paintComponent()
+{
+    if (currentlyPainting)
+        return;
+
+    currentlyPainting = true;
+
+    if (!initialised)
+    {
+        initialise();
+    }
+    else
+    {
+        if (nvgGraphicsContext == nullptr)
+        {
+            const float width {getWidth() * scale};
+            const float height {getHeight() * scale};
+
+#if NANOVG_METAL_IMPLEMENTATION
+            void* nativeHandle = getPeer()->getNativeHandle();
+#else
+            void* nativeHandle = nullptr;
+#endif
+
+            nvgGraphicsContext.reset (new NanoVGGraphicsContext (nativeHandle, (int)width, (int)height, scale));
+
+            //mainFrameBuffer = nvgCreateFramebuffer(nvg, width, height, 0);
+        }
+
+#if NANOVG_METAL_IMPLEMENTATION
+        render();
+#else
+        openGLContext.triggerRepaint();
+#endif
+    }
+
+    currentlyPainting = false;
+}
+
+void NanoVGComponent::timerCallback()
+{
+    repaint();
+}
+
+void NanoVGComponent::componentMovedOrResized (juce::Component&, bool, bool wasResized)
 {
     if (!initialised)
         return;
 
-    if (nvgGraphicsContext != nullptr) {
+    if (wasResized && nvgGraphicsContext)
+    {
         nvgReset(nvgGraphicsContext->getContext());
-        nvgGraphicsContext->resized(getWidth(), getHeight());
-    }
 
-    #if NANOVG_METAL_IMPLEMENTATION
-    mnvgSetViewBounds(getPeer()->getNativeHandle(), getWidth(), getHeight());
-    #endif
+        if (auto* display {juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()})
+            scale = (float)display->scale;
+
+        nvgGraphicsContext->resized(getWidth(), getHeight(), scale);
+
+#if NANOVG_METAL_IMPLEMENTATION
+        mnvgSetViewBounds(getPeer()->getNativeHandle(), juce::roundToInt(scale * getWidth()), juce::roundToInt(scale * getHeight()));
+#endif
+    }
 }
 
 void NanoVGComponent::initialise()
 {
-    if (initialised)
-        return;
+    jassert(!initialised);
 
     juce::MessageManager::callAsync([this]()
     {
@@ -115,8 +119,37 @@ void NanoVGComponent::initialise()
 
         setVisible(true);
 
+        if (auto* display {juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()})
+            scale = (float)display->scale;
+        scale = juce::jmax (1.0f,  scale);
         initialised = true;
     });
+}
+
+void NanoVGComponent::render()
+{
+    jassert(initialised);
+
+#if NANOVG_GL_IMPLEMENTATION
+    glViewport(0, 0, getWidth() * scale, getHeight() * scale);
+    glClearColor(0,0,0,0);
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+#endif
+
+    //nvgScissor(nvg, 0, 0, getWidth(), getHeight());
+    nvgBeginFrame (nvgGraphicsContext->getContext(), getWidth(), getHeight(), scale);
+
+    juce::MessageManager::Lock mmLock;
+    juce::Graphics g (*nvgGraphicsContext.get());
+    paintEntireComponent (g, true);
+
+#if NANOVG_GL_IMPLEMENTATION
+    if (!openGLContext.isActive())
+        openGLContext.makeActive();
+#endif
+
+    nvgEndFrame (nvgGraphicsContext->getContext());
+    //openGLContext.swapBuffers();
 }
 
 void NanoVGComponent::shutdown()

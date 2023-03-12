@@ -5,15 +5,15 @@
 #pragma once
 #include "../NanoVGComponent.h"
 
-
 class MainComponent : public NanoVGComponent
 {
 public:
     MainComponent();
     ~MainComponent() override;
 
-    void render() override;
+    void paint (juce::Graphics&) override;
     void resized() override;
+
 private:
     juce::Label label;
     juce::TextButton button;

@@ -7,13 +7,6 @@
 
 //==============================================================================
 
-
-#define STB_TRUETYPE_IMPLEMENTATION
-//#include <stb/stb_truetype.h>
-
-
-//==============================================================================
-
 const static auto allPrintableAsciiCharacters = []() -> juce::String {
     juce::String str;
 
@@ -56,15 +49,15 @@ const int NanoVGGraphicsContext::imageCacheSize = 256;
 
 //==============================================================================
 
-NanoVGGraphicsContext::NanoVGGraphicsContext (void* nativeHandle, int w, int h)
-    : width {w}
-    , height {h}
+
+NanoVGGraphicsContext::NanoVGGraphicsContext (void* nativeHandle, int w, int h, float pixelScale) :
+      width {w},
+      height {h},
+      scale{pixelScale}
 {
 #if NANOVG_METAL_IMPLEMENTATION
-    DBG("Using Metal");
     nvg = nvgCreateContext(nativeHandle, NVG_ANTIALIAS | NVG_TRIPLE_BUFFER, width, height);
 #else
-    DBG("Using OpenGL");
     nvg = nvgCreateContext(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
 #endif
 
@@ -91,7 +84,7 @@ void NanoVGGraphicsContext::addTransform (const juce::AffineTransform& t)
     nvgTransform (nvg, t.mat00, t.mat10, t.mat01, t.mat11, t.mat02, t.mat12);
 }
 
-float NanoVGGraphicsContext::getPhysicalPixelScaleFactor() { return 1.0f; }
+float NanoVGGraphicsContext::getPhysicalPixelScaleFactor() { return scale; }
 
 bool NanoVGGraphicsContext::clipToRectangle (const juce::Rectangle<int>& rect)
 {
@@ -107,7 +100,7 @@ bool NanoVGGraphicsContext::clipToRectangleList (const juce::RectangleList<int>&
     return ! getClipBounds().isEmpty();
 }
 
-void NanoVGGraphicsContext::excludeClipRectangle (const juce::Rectangle<int>& rect)
+void NanoVGGraphicsContext::excludeClipRectangle (const juce::Rectangle<int>&)
 {
     // @todo
     jassertfalse;
@@ -151,7 +144,7 @@ bool NanoVGGraphicsContext::isClipEmpty() const
     float h = height;
 
     nvgCurrentScissor (nvg, &x, &y, &w, &h);
-    
+
     return w < 0.0f || h < 0.0f;
 }
 
@@ -213,30 +206,29 @@ void NanoVGGraphicsContext::fillRectList (const juce::RectangleList<float>& rect
         fillRect (rect);
 }
 
-void NanoVGGraphicsContext::strokePath (const juce::Path& path, const juce::PathStrokeType& strokeType, const juce::AffineTransform& transform) {
-    
-       // First set options
+void NanoVGGraphicsContext::strokePath (const juce::Path& path, const juce::PathStrokeType& strokeType, const juce::AffineTransform& transform)
+{
+    // First set options
     switch (strokeType.getEndStyle())
     {
         case juce::PathStrokeType::EndCapStyle::butt:     nvgLineCap(nvg, NVG_BUTT);     break;
         case juce::PathStrokeType::EndCapStyle::rounded:  nvgLineCap(nvg, NVG_ROUND);    break;
         case juce::PathStrokeType::EndCapStyle::square:   nvgLineCap(nvg, NVG_SQUARE);   break;
     }
-   
+
     switch (strokeType.getJointStyle())
     {
         case juce::PathStrokeType::JointStyle::mitered: nvgLineJoin(nvg, NVG_MITER);   break;
         case juce::PathStrokeType::JointStyle::curved:  nvgLineJoin(nvg, NVG_ROUND);   break;
         case juce::PathStrokeType::JointStyle::beveled: nvgLineJoin(nvg, NVG_BEVEL);   break;
     }
-    
 
     nvgStrokeWidth(nvg, strokeType.getStrokeThickness());
     nvgPathWinding(nvg, NVG_CCW);
     setPath(path, transform);
     applyStrokeType();
     nvgStroke(nvg);
-};
+}
 
 void NanoVGGraphicsContext::setPath (const juce::Path& path, const juce::AffineTransform& transform)
 {
@@ -246,7 +238,7 @@ void NanoVGGraphicsContext::setPath (const juce::Path& path, const juce::AffineT
     nvgBeginPath (nvg);
 
     juce::Path::Iterator i (p);
-    
+
     // Flag is used to flip winding when drawing shapes with holes.
     bool solid = true;
 
@@ -255,22 +247,22 @@ void NanoVGGraphicsContext::setPath (const juce::Path& path, const juce::AffineT
         switch (i.elementType)
         {
             case juce::Path::Iterator::startNewSubPath:
-            nvgMoveTo (nvg, i.x1, i.y1);
-            break;
+                nvgMoveTo (nvg, i.x1, i.y1);
+                break;
             case juce::Path::Iterator::lineTo:
-            nvgLineTo (nvg, i.x1, i.y1);
-            break;
+                nvgLineTo (nvg, i.x1, i.y1);
+                break;
             case juce::Path::Iterator::quadraticTo:
-            nvgQuadTo (nvg, i.x1, i.y1, i.x2, i.y2);
-            break;
+                nvgQuadTo (nvg, i.x1, i.y1, i.x2, i.y2);
+                break;
             case juce::Path::Iterator::cubicTo:
-            nvgBezierTo (nvg, i.x1, i.y1, i.x2, i.y2, i.x3, i.y3);
-            break;
+                nvgBezierTo (nvg, i.x1, i.y1, i.x2, i.y2, i.x3, i.y3);
+                break;
             case juce::Path::Iterator::closePath:
-            nvgClosePath (nvg);
-            nvgPathWinding (nvg, solid ? NVG_SOLID : NVG_HOLE);
-            solid = ! solid;
-            break;
+                nvgClosePath (nvg);
+                nvgPathWinding (nvg, solid ? NVG_SOLID : NVG_HOLE);
+                solid = ! solid;
+                break;
         default:
             break;
         }
@@ -313,7 +305,6 @@ void NanoVGGraphicsContext::drawImage (const juce::Image& image, const juce::Aff
     }
     else
         jassertfalse;
-
 }
 
 void NanoVGGraphicsContext::drawLine (const juce::Line<float>& line)
@@ -394,8 +385,9 @@ bool NanoVGGraphicsContext::drawTextLayout (const juce::AttributedString& str, c
     return true;
 }
 
-void NanoVGGraphicsContext::resized(int w, int h)
+void NanoVGGraphicsContext::resized(int w, int h, float pixelScale)
 {
+    scale = pixelScale;
     width = w;
     height = h;
 }
@@ -431,7 +423,7 @@ bool NanoVGGraphicsContext::loadFontFromResources (const juce::String& typefaceN
 
         if (id >= 0)
         {
-            juce::Font tmpFont (juce::Typeface::createSystemTypefaceFor (ptr, size));
+            juce::Font tmpFont (juce::Typeface::createSystemTypefaceFor (ptr, (size_t)size));
             loadedFonts[typefaceName] = getGlyphToCharMapForFont (tmpFont);
             currentGlyphToCharMap = &loadedFonts[typefaceName];
             return true;
@@ -445,6 +437,7 @@ bool NanoVGGraphicsContext::loadFontFromResources (const juce::String& typefaceN
     return false;
 
 }
+
 
 void NanoVGGraphicsContext::applyFillType()
 {
