@@ -27,8 +27,26 @@ juce_add_plugin(${PROJECT_NAME}
 )
 
 juce_add_binary_data(staticFiles SOURCES
-    "${PROJECT_SOURCE_DIR}/Resources/Lucida Grande-Regular.ttf"
-    ${PROJECT_SOURCE_DIR}/Resources/Verdana-Regular.ttf)
+    "Resources/Lucida Grande-Regular.ttf"
+    Resources/Verdana-Regular.ttf
+    modules/nanovg/example/images/image1.jpg
+    modules/nanovg/example/images/image2.jpg
+    modules/nanovg/example/images/image3.jpg
+    modules/nanovg/example/images/image4.jpg
+    modules/nanovg/example/images/image5.jpg
+    modules/nanovg/example/images/image6.jpg
+    modules/nanovg/example/images/image7.jpg
+    modules/nanovg/example/images/image8.jpg
+    modules/nanovg/example/images/image9.jpg
+    modules/nanovg/example/images/image10.jpg
+    modules/nanovg/example/images/image11.jpg
+    modules/nanovg/example/images/image12.jpg
+    modules/nanovg/example/entypo.ttf
+    modules/nanovg/example/NotoEmoji-Regular.ttf
+    modules/nanovg/example/Roboto-Bold.ttf
+    modules/nanovg/example/Roboto-Light.ttf
+    modules/nanovg/example/Roboto-Regular.ttf
+)
 
 #-------- nanovg --------
 
@@ -100,6 +118,7 @@ target_sources(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/NanoVGGraphics.cpp
         # ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/Main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/MainComponent.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/NVGDemoComponent.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/PluginEditor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/PluginProcessor.cpp
 )

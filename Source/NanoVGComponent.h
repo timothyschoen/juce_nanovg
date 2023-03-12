@@ -28,6 +28,9 @@ public:
 
     NanoVGGraphicsContext* getNVGGraphicsContext() noexcept { return nvgGraphicsContext.get(); }
 
+    // Setup anything you need here
+    virtual void contextCreated(NVGcontext*) {}
+
 private:
     void paintComponent();
     void timerCallback() override;

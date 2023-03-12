@@ -438,7 +438,6 @@ bool NanoVGGraphicsContext::loadFontFromResources (const juce::String& typefaceN
 
 }
 
-
 void NanoVGGraphicsContext::applyFillType()
 {
     if (fillType.isColour())

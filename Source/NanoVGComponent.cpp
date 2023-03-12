@@ -67,6 +67,7 @@ void NanoVGComponent::paintComponent()
             nvgGraphicsContext.reset (new NanoVGGraphicsContext (nativeHandle, (int)width, (int)height, scale));
 
             //mainFrameBuffer = nvgCreateFramebuffer(nvg, width, height, 0);
+            contextCreated(nvgGraphicsContext->getContext());
         }
 
 #if NANOVG_METAL_IMPLEMENTATION

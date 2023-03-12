@@ -13,8 +13,6 @@ MainComponent::MainComponent()
 #endif
     button("Text button")
 {
-    setSize (600, 400);
-
     label.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(label);
     addAndMakeVisible(button);
