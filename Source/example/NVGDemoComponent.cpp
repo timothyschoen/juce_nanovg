@@ -89,7 +89,12 @@ void NVGDemoComponent::paint(juce::Graphics& g)
     prevTime = timeSeconds;
 	updateGraph(&performanceGraph, dt);
 
-	g.fillAll(juce::Colour::fromFloatRGBA(0.3f, 0.3f, 0.32f, 1.0f));
+	auto premult = juce::KeyPress::isKeyCurrentlyDown('p');
+	if (premult)
+		g.fillAll(juce::Colours::transparentBlack);
+	else
+		g.fillAll(juce::Colour::fromFloatRGBA(0.3f, 0.3f, 0.32f, 1.0f));
+	int blowup = (int)juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::spaceKey);
     renderDemo(getNVGGraphicsContext()->getContext(), mouseX,mouseY, getWidth(), getHeight(), (float)timeSeconds, blowup);
     renderGraph(getNVGGraphicsContext()->getContext(), 5, 5, &performanceGraph);
 }

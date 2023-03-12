@@ -100,7 +100,6 @@ private:
     float mouseX, mouseY = 0.0f;
     glfwLikeTimer timer;
     double prevTime = 0;
-    int blowup = 0;
     DemoData data;
 
     PerfGraph performanceGraph;
