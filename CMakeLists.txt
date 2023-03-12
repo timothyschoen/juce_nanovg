@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.15)
-
 project(juce_nanovg VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -29,19 +28,7 @@ juce_add_binary_data(staticFiles SOURCES
     "${PROJECT_SOURCE_DIR}/Resources/Lucida Grande-Regular.ttf"
     ${PROJECT_SOURCE_DIR}/Resources/Verdana-Regular.ttf)
 
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        staticFiles
-        juce::juce_audio_utils
-        juce::juce_gui_basics
-        juce::juce_opengl
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_lto_flags
-        juce::juce_recommended_warning_flags)
-
 #-------- nanovg --------
-
 
 set(NANOVG_SRC ${CMAKE_CURRENT_SOURCE_DIR}/Source/nanovg_compat/nanovg_compat.c)
 if(APPLE)
@@ -61,6 +48,19 @@ endif()
 
 #---------------------
 
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        staticFiles
+        juce::juce_audio_utils
+        juce::juce_gui_basics
+        juce::juce_opengl
+        ${FREETYPE_LIBRARIES}
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_lto_flags
+        juce::juce_recommended_warning_flags
+)
+
 target_compile_definitions(${PROJECT_NAME}
     PUBLIC
         JUCE_DISPLAY_SPLASH_SCREEN=0
@@ -68,12 +68,9 @@ target_compile_definitions(${PROJECT_NAME}
         DONT_SET_USING_JUCE_NAMESPACE=1)
 if(APPLE)
     target_compile_definitions(${PROJECT_NAME} PUBLIC NANOVG_METAL_IMPLEMENTATION)
-    target_compile_definitions(nanovg PRIVATE NANOVG_GL2_IMPLEMENTATION)
 else()
     target_compile_definitions(${PROJECT_NAME} PUBLIC NANOVG_GLES2_IMPLEMENTATION)
-    target_compile_definitions(nanovg PUBLIC NANOVG_GLES2_IMPLEMENTATION)
 endif()
-
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
