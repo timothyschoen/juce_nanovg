@@ -3,7 +3,7 @@
 
 #import <AppKit/AppKit.h>
 
-NVGcontext* mnvgSetViewBounds(void* view, int width, int height) {
+void mnvgSetViewBounds(void* view, int width, int height) {
     [(CAMetalLayer*)[(__bridge NSView*)view layer] setDrawableSize:CGSizeMake(width, height)];
 }
 
@@ -18,4 +18,3 @@ NVGcontext* mnvgCreateContext(void* view, int flags, int width, int height) {
     
     return nvgCreateMTL((__bridge void*)((__bridge NSView*) view).layer, flags);
 }
-
