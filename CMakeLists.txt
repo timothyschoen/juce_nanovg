@@ -22,7 +22,9 @@ add_subdirectory(modules/JUCE)
 juce_add_plugin(${PROJECT_NAME}
     VERSION ${PROJECT_VERSION}
     FORMATS AU VST3 Standalone
-    PRODUCT_NAME ${PROJECT_NAME})
+    PRODUCT_NAME ${PROJECT_NAME}
+    IS_SYNTH TRUE # disables "Audio input muted" notification.
+)
 
 juce_add_binary_data(staticFiles SOURCES
     "${PROJECT_SOURCE_DIR}/Resources/Lucida Grande-Regular.ttf"
