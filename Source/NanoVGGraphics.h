@@ -94,9 +94,6 @@ public:
 
 private:
     bool loadFontFromResources (const juce::String& typefaceName);
-    void applyFillType();
-    void applyStrokeType();
-    void applyFont();
 
     int getNvgImageId (const juce::Image& image);
     void reduceImageCache();
@@ -107,7 +104,6 @@ private:
     int height;
     float scale = 1.0f;
 
-    juce::FillType fillType;
     juce::Font font;
 
     // Mapping glyph number to a character

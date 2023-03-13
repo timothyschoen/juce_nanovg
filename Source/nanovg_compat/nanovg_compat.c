@@ -27,3 +27,9 @@ void nvgCurrentScissor(NVGcontext* ctx, float* x, float* y, float* w, float* h)
     *w = tex*2;
     *h = tey*2;
 }
+
+NVGcolor nvgGetFillColor(NVGcontext* ctx)
+{
+    NVGstate* state = nvg__getState(ctx);
+    return state->fill.innerColor;
+}

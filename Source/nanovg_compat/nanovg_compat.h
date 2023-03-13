@@ -9,6 +9,7 @@ extern "C" {
 
 
 void nvgCurrentScissor(NVGcontext* ctx, float* x, float* y, float* w, float* h);
+NVGcolor nvgGetFillColor(NVGcontext* ctx);
 
 #ifdef NANOVG_METAL_IMPLEMENTATION
 #include "nanovg_mtl.h"

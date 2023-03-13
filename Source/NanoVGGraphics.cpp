@@ -169,14 +169,56 @@ void NanoVGGraphicsContext::endTransparencyLayer()
     restoreState();
 }
 
-void NanoVGGraphicsContext::setFill (const juce::FillType& f)
+void NanoVGGraphicsContext::setFill (const juce::FillType& fillType)
 {
-    fillType = f;
+    if (fillType.isColour())
+    {
+        auto c = nvgColour (fillType.colour);
+        nvgFillColor (nvg, c);
+        nvgStrokeColor (nvg, c);
+    }
+    else if (fillType.isGradient())
+    {
+        if (juce::ColourGradient* gradient = fillType.gradient.get())
+        {
+            const auto numColours = gradient->getNumColours();
+
+            if (numColours == 1)
+            {
+                // Just a solid fill
+                nvgFillColor (nvg, nvgColour (gradient->getColour (0)));
+            }
+            else if (numColours > 1)
+            {
+                NVGpaint p;
+
+                if (gradient->isRadial)
+                {
+                    p = nvgRadialGradient (nvg,
+                                           gradient->point1.getX(), gradient->point1.getY(),
+                                           gradient->point2.getX(), gradient->point2.getY(),
+                                           nvgColour (gradient->getColour (0)), nvgColour (gradient->getColour (numColours - 1)));
+                }
+                else
+                {
+                    p = nvgLinearGradient (nvg,
+                                           gradient->point1.getX(), gradient->point1.getY(),
+                                           gradient->point2.getX(), gradient->point2.getY(),
+                                           nvgColour (gradient->getColour (0)), nvgColour (gradient->getColour (numColours - 1)));
+                }
+
+                nvgFillPaint (nvg, p);
+            }
+        }
+    }
 }
 
 void NanoVGGraphicsContext::setOpacity(float op)
 {
-    fillType.setOpacity(op);
+    auto c = nvgGetFillColor(nvg);
+    nvgRGBAf(c.r, c.g, c.b, op);
+    nvgFillColor(nvg, c);
+    nvgStrokeColor(nvg, c);
 }
 
 void NanoVGGraphicsContext::setInterpolationQuality (juce::Graphics::ResamplingQuality)
@@ -187,7 +229,6 @@ void NanoVGGraphicsContext::setInterpolationQuality (juce::Graphics::ResamplingQ
 void NanoVGGraphicsContext::fillRect (const juce::Rectangle<int>& rect, bool /* replaceExistingContents */)
 {
     nvgBeginPath (nvg);
-    applyFillType();
     nvgRect (nvg, rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
     nvgFill (nvg);
 }
@@ -195,7 +236,6 @@ void NanoVGGraphicsContext::fillRect (const juce::Rectangle<int>& rect, bool /* 
 void NanoVGGraphicsContext::fillRect (const juce::Rectangle<float>& rect)
 {
     nvgBeginPath (nvg);
-    applyFillType();
     nvgRect (nvg, rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
     nvgFill (nvg);
 }
@@ -226,7 +266,6 @@ void NanoVGGraphicsContext::strokePath (const juce::Path& path, const juce::Path
     nvgStrokeWidth(nvg, strokeType.getStrokeThickness());
     nvgPathWinding(nvg, NVG_CCW);
     setPath(path, transform);
-    applyStrokeType();
     nvgStroke(nvg);
 }
 
@@ -273,7 +312,6 @@ void NanoVGGraphicsContext::setPath (const juce::Path& path, const juce::AffineT
 void NanoVGGraphicsContext::fillPath (const juce::Path& path, const juce::AffineTransform& transform)
 {
     setPath(path, transform);
-    applyFillType();
     nvgFill (nvg);
 }
 
@@ -312,14 +350,21 @@ void NanoVGGraphicsContext::drawLine (const juce::Line<float>& line)
     nvgBeginPath (nvg);
     nvgMoveTo (nvg, line.getStartX(), line.getStartY());
     nvgLineTo (nvg, line.getEndX(), line.getEndY());
-    applyStrokeType();
     nvgStroke (nvg);
 }
 
 void NanoVGGraphicsContext::setFont (const juce::Font& f)
 {
     font = f;
-    applyFont();
+    juce::String name {font.getTypefacePtr()->getName()};
+    name << "-" << font.getTypefaceStyle();
+
+    if (loadFontFromResources (name))
+        nvgFontFace (nvg, name.toUTF8());
+    else
+        nvgFontFace (nvg, defaultTypefaceName.toRawUTF8());
+
+    nvgFontSize (nvg, font.getHeight());
 }
 
 const juce::Font& NanoVGGraphicsContext::getFont()
@@ -337,7 +382,6 @@ void NanoVGGraphicsContext::drawGlyph (int glyphNumber, const juce::AffineTransf
     if (currentGlyphToCharMap->find (glyphNumber) != currentGlyphToCharMap->end())
         txt[0] = (char)currentGlyphToCharMap->at (glyphNumber);
 
-    nvgFillColor (nvg, nvgColour (fillType.colour));
     nvgText (nvg, t.getTranslationX(), t.getTranslationY(), txt, &txt[1]);
 
 }
@@ -435,71 +479,6 @@ bool NanoVGGraphicsContext::loadFontFromResources (const juce::String& typefaceN
     }
 
     return false;
-
-}
-
-void NanoVGGraphicsContext::applyFillType()
-{
-    if (fillType.isColour())
-    {
-        nvgFillColor (nvg, nvgColour (fillType.colour));
-    }
-    else if (fillType.isGradient())
-    {
-        if (juce::ColourGradient* gradient = fillType.gradient.get())
-        {
-            const auto numColours = gradient->getNumColours();
-
-            if (numColours == 1)
-            {
-                // Just a solid fill
-                nvgFillColor (nvg, nvgColour (gradient->getColour (0)));
-            }
-            else if (numColours > 1)
-            {
-                NVGpaint p;
-
-                if (gradient->isRadial)
-                {
-                    p = nvgRadialGradient (nvg,
-                                           gradient->point1.getX(), gradient->point1.getY(),
-                                           gradient->point2.getX(), gradient->point2.getY(),
-                                           nvgColour (gradient->getColour (0)), nvgColour (gradient->getColour (numColours - 1)));
-                }
-                else
-                {
-                    p = nvgLinearGradient (nvg,
-                                           gradient->point1.getX(), gradient->point1.getY(),
-                                           gradient->point2.getX(), gradient->point2.getY(),
-                                           nvgColour (gradient->getColour (0)), nvgColour (gradient->getColour (numColours - 1)));
-                }
-
-                nvgFillPaint (nvg, p);
-            }
-        }
-    }
-}
-
-void NanoVGGraphicsContext::applyStrokeType()
-{
-    if (fillType.isColour())
-    {
-        const auto& c = fillType.colour;
-        nvgStrokeColor (nvg, nvgRGBA (c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha()));
-    }
-}
-
-void NanoVGGraphicsContext::applyFont()
-{
-    juce::String name {font.getTypefacePtr()->getName()};
-    name << "-" << font.getTypefaceStyle();
-
-    if (loadFontFromResources (name))
-        nvgFontFace (nvg, name.toUTF8());
-    else
-        nvgFontFace (nvg, defaultTypefaceName.toRawUTF8());
-
-    nvgFontSize (nvg, font.getHeight());
 }
 
 int NanoVGGraphicsContext::getNvgImageId (const juce::Image& image)
