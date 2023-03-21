@@ -2,7 +2,7 @@
 //  Copyright (C) 2022 Arthur Benilov <arthur.benilov@gmail.com> and Timothy Schoen <timschoen123@gmail.com>
 //
 
-#include "NanoVGGraphics.h"
+#include "NanoVGGraphicsContext.h"
 #include <BinaryData.h>
 
 //==============================================================================

@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "NanoVGGraphics.h"
+#include "NanoVGGraphicsContext.h"
 
 /**
     JUCE UI component rendered usin nanovg

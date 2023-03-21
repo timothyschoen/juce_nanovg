@@ -74,7 +74,6 @@ target_link_libraries(${PROJECT_NAME}
         juce::juce_audio_utils
         juce::juce_gui_basics
         juce::juce_opengl
-        ${FREETYPE_LIBRARIES}
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
@@ -114,25 +113,20 @@ target_include_directories(${PROJECT_NAME}
 
 target_sources(${PROJECT_NAME}
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/Source/NanoVGComponent.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Source/NanoVGGraphics.cpp
         # ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/Main.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/MainComponent.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/NVGDemoComponent.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/PluginEditor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/PluginProcessor.cpp
 )
 
 if(APPLE)
-  target_link_libraries(${PROJECT_NAME}
-      PRIVATE
-  "-framework Metal"
-  )
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE
+            "-framework Metal"
+    )
 endif()
 
 if("${CMAKE_SYSTEM}" MATCHES "Linux")
-  target_link_libraries(${PROJECT_NAME}
-      PRIVATE
-  -lGL -lGLEW -lGLX
-  )
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE
+            -lGL -lGLEW -lGLX
+    )
 endif()
