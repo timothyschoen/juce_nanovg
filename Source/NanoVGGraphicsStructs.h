@@ -1,7 +1,6 @@
 #pragma once
-#include <cmath>
-#include <algorithm>
 #include <nanovg_compat/nanovg_compat.h>
+#include <juce_core/juce_core.h>
 
 class ComponentLayer;
 class NanoVGGraphics;
@@ -104,24 +103,8 @@ struct Blend
 class APIBitmap
 {
 public:
-    APIBitmap(NVGcontext* nvg, int width_, int height_, float scale_, float drawScale_)
-        : width(width_)
-        , height(height_)
-        , scale(scale_)
-        , drawScale(drawScale_)
-    {
-        FBO = mnvgCreateFramebuffer(nvg, width, height, 0);
-        mnvgBindFramebuffer(FBO);
-        mnvgClearWithColor(nvg, nvgRGBA(0, 0, 0, 0));
-
-        nvgBeginFrame(nvg, width, height, 1.0f);
-        nvgEndFrame(nvg);
-    }
-    ~APIBitmap()
-    {
-        if(FBO)
-            mnvgDeleteFramebuffer(FBO);
-    }
+    APIBitmap(NanoVGGraphics& g, int width_, int height_, float scale_, float drawScale_);
+    ~APIBitmap();
 
     int width, height;
     float scale, drawScale;
@@ -130,6 +113,7 @@ public:
     // NanoVG texture ID. Lives on GPU
     int getImageId() const { return FBO->image; }
 private:
+    NanoVGGraphics& graphics;
     MNVGframebuffer* FBO = nullptr;
 };
 
@@ -154,7 +138,8 @@ public:
 class ComponentLayer
 {
 public:
-    void draw(NanoVGGraphics& g);
+    ComponentLayer() = default;
+    ~ComponentLayer() = default;
 
     virtual void drawCachable(NanoVGGraphics&) {}
     virtual void drawAnimated(NanoVGGraphics&) {}
@@ -163,4 +148,10 @@ public:
     Rect bounds;
     Blend blend;
     bool useLayer = true;
+
+protected:
+    void draw(NanoVGGraphics& g);
+
+private:
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ComponentLayer)
 };

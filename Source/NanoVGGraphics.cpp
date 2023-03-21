@@ -36,6 +36,8 @@ NanoVGGraphics::NanoVGGraphics(juce::Component& comp)
 
 NanoVGGraphics::~NanoVGGraphics()
 {
+    layer.reset(nullptr);
+    clearFBOStack();
     onViewDestroyed();
 }
 
@@ -84,12 +86,33 @@ void NanoVGGraphics::onViewDestroyed()
         nvgDeleteMTL(nvg);
 }
 
-APIBitmap *NanoVGGraphics::createBitmap(int width, int height, float scale, double drawScale)
+void NanoVGGraphics::deleteFBO(MNVGframebuffer * pBuffer)
+{
+    if (!inDraw)
+        mnvgDeleteFramebuffer(pBuffer);
+    else
+    {
+        juce::ScopedLock sl (FBOLock);
+        FBOStack.push(pBuffer);
+    }
+}
+
+void NanoVGGraphics::clearFBOStack()
+{
+    juce::ScopedLock sl (FBOLock);
+    while (!FBOStack.empty())
+    {
+        mnvgDeleteFramebuffer(FBOStack.top());
+        FBOStack.pop();
+    }
+}
+
+APIBitmap *NanoVGGraphics::createBitmap(int width, int height, float scale_, double drawScale_)
 {
     if (inDraw)
         nvgEndFrame(nvg);
 
-    APIBitmap* pAPIBitmap = new APIBitmap(nvg, width, height, scale, drawScale);
+    APIBitmap* pAPIBitmap = new APIBitmap(*this, width, height, scale_, drawScale_);
 
     if (inDraw)
     {
@@ -277,8 +300,8 @@ void NanoVGGraphics::pathClear()
 
 void NanoVGGraphics::pathTransformSetMatrix(const Matrix& m)
 {
-    double xTranslate = 0.0;
-    double yTranslate = 0.0;
+    float xTranslate = 0.0f;
+    float yTranslate = 0.0f;
 
     if (!layers.empty())
     {
@@ -353,6 +376,7 @@ void NanoVGGraphics::render()
     endFrame();
 
     inDraw = false;
+    clearFBOStack();
 }
 
 void NanoVGGraphics::beginFrame()

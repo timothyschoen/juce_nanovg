@@ -73,8 +73,11 @@ public:
 
     APIBitmap* createBitmap(int width, int height, float scale, double drawScale_);
 
+    void deleteFBO(MNVGframebuffer* pBuffer);
 private:
     void onViewDestroyed();
+
+    void clearFBOStack();
 
     void initialise();
     void render();
@@ -83,7 +86,7 @@ private:
 
     juce::Component& attachedComponent;
 
-    NVGcontext* nvg;
+    NVGcontext* nvg = nullptr;
     MNVGframebuffer* mainFrameBuffer = nullptr;
     int windowWidth = 0, windowHeight = 0;
     float scale = 1.0f, drawScale = 1.0f;
@@ -93,4 +96,9 @@ private:
     Matrix transform;
     std::stack<Matrix> transformStates;
     std::stack<Layer*> layers;
+
+    juce::CriticalSection FBOLock;
+    std::stack<MNVGframebuffer*> FBOStack; // A stack of FBOs that requires freeing at the end of the frame
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NanoVGGraphics)
 };
