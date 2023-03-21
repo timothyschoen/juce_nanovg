@@ -7,9 +7,22 @@ extern "C" {
 
 #include "nanovg.h"
 
+struct NanoVGDrawCallCount
+{
+    int draws;
+    int fill;
+    int stroke;
+    int text;
+    int total;
+};
+typedef struct NanoVGDrawCallCount NanoVGDrawCallCount;
+
+NanoVGDrawCallCount nvgGetDrawCallCount(NVGcontext* ctx);
+
+NVGcolor nvgGetFillColor(NVGcontext* ctx);
+
 
 void nvgCurrentScissor(NVGcontext* ctx, float* x, float* y, float* w, float* h);
-NVGcolor nvgGetFillColor(NVGcontext* ctx);
 
 #ifdef NANOVG_METAL_IMPLEMENTATION
 #include "nanovg_mtl.h"
