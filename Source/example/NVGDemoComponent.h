@@ -69,6 +69,10 @@ private:
     float getGraphAverage(PerfGraph* fps);
 
     //==============================================================================
+    
+    void renderDrawCallGraph(NVGcontext* vg);
+    
+    //==============================================================================
 
     struct DemoData {
         int fontNormal, fontBold, fontIcons, fontEmoji;

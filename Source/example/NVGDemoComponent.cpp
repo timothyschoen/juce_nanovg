@@ -97,6 +97,7 @@ void NVGDemoComponent::paint(juce::Graphics& g)
 	int blowup = (int)juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::spaceKey);
     renderDemo(getNVGGraphicsContext()->getContext(), mouseX,mouseY, getWidth(), getHeight(), (float)timeSeconds, blowup);
     renderGraph(getNVGGraphicsContext()->getContext(), 5, 5, &performanceGraph);
+	renderDrawCallGraph(getNVGGraphicsContext()->getContext());
 }
 
 //==============================================================================
@@ -1217,6 +1218,39 @@ float NVGDemoComponent::getGraphAverage(PerfGraph* fps)
 		avg += fps->values[i];
 	}
 	return avg / (float)GRAPH_HISTORY_COUNT;
+}
+
+void NVGDemoComponent::renderDrawCallGraph(NVGcontext * vg)
+{
+	float x = 220, y = 5, w = 220, h = 35;
+	NanoVGDrawCallCount stats = nvgGetDrawCallCount(vg);
+
+	nvgBeginPath(vg);
+	nvgRect(vg, x, y, w, h);
+	nvgFillColor(vg, nvgRGBA(0,0,0,128));
+	nvgFill(vg);
+
+	nvgFontSize(vg, 12.0f);
+	nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
+	nvgFillColor(vg, nvgRGBA(240,240,240,255));
+
+	float pX = 5.0f, pY = 4.0f;
+	char txt[32];
+	snprintf(txt, sizeof(txt), "Draws: %d", stats.draws);
+	nvgText(vg, x + pX, y + pY, txt, nullptr);
+
+	snprintf(txt, sizeof(txt), "Fill: %d", stats.fill);
+	nvgText(vg, x + pX, y + pY + pY + 12.f, txt, nullptr);
+
+	snprintf(txt, sizeof(txt), "Stroke: %d", stats.stroke);
+	nvgText(vg, x + 80, y + pY, txt, nullptr);
+
+	snprintf(txt, sizeof(txt), "Text: %d", stats.text);
+	nvgText(vg, x + 80, y + pY + pY + 12.f, txt, nullptr);
+
+	nvgTextAlign(vg, NVG_ALIGN_RIGHT | NVG_ALIGN_TOP);
+	snprintf(txt, sizeof(txt), "Total: %d", stats.total);
+	nvgText(vg, x + w - pX, y + pY + pY + 12.f, txt, nullptr);
 }
 
 void NVGDemoComponent::drawSlider(NVGcontext* vg, float pos, float x, float y, float w, float h)

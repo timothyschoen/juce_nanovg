@@ -1,6 +1,23 @@
 #include "nanovg_compat.h"
 #include "nanovg.c"
 
+NanoVGDrawCallCount nvgGetDrawCallCount(NVGcontext* ctx)
+{
+    NanoVGDrawCallCount callCount;
+    callCount.draws = ctx->drawCallCount;
+    callCount.fill = ctx->fillTriCount;
+    callCount.stroke = ctx->strokeTriCount;
+    callCount.text = ctx->textTriCount;
+    callCount.total = ctx->drawCallCount + ctx->fillTriCount + ctx->strokeTriCount + ctx->textTriCount;
+    return callCount;
+}
+
+NVGcolor nvgGetFillColor(NVGcontext* ctx)
+{
+    NVGstate* state = nvg__getState(ctx);
+    return state->fill.innerColor;
+}
+
 void nvgCurrentScissor(NVGcontext* ctx, float* x, float* y, float* w, float* h)
 {
     NVGstate* state = nvg__getState(ctx);
@@ -26,10 +43,4 @@ void nvgCurrentScissor(NVGcontext* ctx, float* x, float* y, float* w, float* h)
     *y = pxform[5]-tey;
     *w = tex*2;
     *h = tey*2;
-}
-
-NVGcolor nvgGetFillColor(NVGcontext* ctx)
-{
-    NVGstate* state = nvg__getState(ctx);
-    return state->fill.innerColor;
 }
