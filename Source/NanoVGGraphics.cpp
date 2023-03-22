@@ -41,7 +41,6 @@ NanoVGGraphics::~NanoVGGraphics()
     onViewDestroyed();
 }
 
-
 void NanoVGGraphics::componentMovedOrResized (juce::Component& comp, bool, bool wasResized)
 {
     if (wasResized)
@@ -117,13 +116,14 @@ APIBitmap *NanoVGGraphics::createBitmap(int width, int height, float scale_, dou
     if (inDraw)
     {
         mnvgBindFramebuffer(mainFrameBuffer); // begin main frame buffer update
-        nvgBeginFrame(nvg, windowWidth, windowHeight, getScreenScale());
+        // nvgBeginFrame(nvg, windowWidth, windowHeight, getScreenScale());
+        nvgBeginFrame(nvg, windowWidth, windowHeight, 1.0f);
     }
 
     return pAPIBitmap;
 }
 
-void NanoVGGraphics::startLayer(ComponentLayer* component, const Rect& r, bool cacheable)
+void NanoVGGraphics::startLayer(ComponentLayer* component, const Rect& r)
 {
     auto pixelBackingScale = scale;
     auto alignedBounds = r.getAligned();
@@ -131,16 +131,6 @@ void NanoVGGraphics::startLayer(ComponentLayer* component, const Rect& r, bool c
     const int h = static_cast<int>(std::ceil(pixelBackingScale * std::ceil(alignedBounds.H())));
 
     pushLayer(new Layer(createBitmap(w, h, getScreenScale(), getDrawScale()), alignedBounds, component));
-}
-
-void NanoVGGraphics::resumeLayer(Layer::Ptr &layer)
-{
-    Layer::Ptr ownedLayer;
-    
-    ownedLayer.swap(layer);
-
-    if (Layer* ownerlessLayer = ownedLayer.release())
-        pushLayer(ownerlessLayer);
 }
 
 Layer::Ptr NanoVGGraphics::endLayer()
@@ -152,9 +142,6 @@ void NanoVGGraphics::pushLayer(Layer* pLayer)
 {
     layers.push(pLayer);
     updateLayer();
-    pathTransformReset();
-    pathClipRegion(pLayer->getBounds());
-    pathClear();
 }
 
 Layer* NanoVGGraphics::popLayer()
@@ -168,9 +155,6 @@ Layer* NanoVGGraphics::popLayer()
     }
 
     updateLayer();
-    pathTransformReset();
-    pathClipRegion();
-    pathClear();
 
     return pLayer;
 }
@@ -184,7 +168,8 @@ void NanoVGGraphics::updateLayer()
         // glViewport(0, 0, WindowWidth() * GetScreenScale(), WindowHeight() * GetScreenScale());
         // #endif
         mnvgBindFramebuffer(mainFrameBuffer);
-        nvgBeginFrame(nvg, windowWidth, windowHeight, getScreenScale());
+        // nvgBeginFrame(nvg, windowWidth, windowHeight, getScreenScale());
+        nvgBeginFrame(nvg, windowWidth, windowHeight, 1.0f);
     }
     else
     {
@@ -194,7 +179,8 @@ void NanoVGGraphics::updateLayer()
         // glViewport(0, 0, mLayers.top()->Bounds().W() * scale, mLayers.top()->Bounds().H() * scale);
         // #endif
         mnvgBindFramebuffer(layers.top()->bitmap.get()->getFBO());
-        nvgBeginFrame(nvg, layers.top()->getBounds().W() * getDrawScale(), layers.top()->getBounds().H() * getDrawScale(), getScreenScale());
+        mnvgClearWithColor(nvg, nvgRGBA(0, 0, 0, 0));
+        nvgBeginFrame(nvg, layers.top()->getBounds().W(), layers.top()->getBounds().H(), 1.0f);
     }
 }
 
@@ -216,10 +202,7 @@ bool NanoVGGraphics::checkLayer(const Layer::Ptr &layer)
 
 void NanoVGGraphics::drawLayer(const Layer::Ptr &layer, const Blend *pBlend)
 {
-    pathTransformSave();
-    pathTransformReset();
     drawBitmap(layer->bitmap.get(), layer->getBounds(), 0, 0, pBlend);
-    pathTransformRestore();
 }
 
 void NanoVGGraphics::drawBitmap(const APIBitmap* bitmap, const Rect& dest, int srcX, int srcY, const Blend* pBlend)
@@ -250,71 +233,6 @@ void NanoVGGraphics::drawBitmap(const APIBitmap* bitmap, const Rect& dest, int s
     nvgFill(nvg);
     nvgGlobalCompositeOperation(nvg, NVG_SOURCE_OVER);
     nvgBeginPath(nvg); // Clears the bitmap rect from the path state
-}
-
-void NanoVGGraphics::setClipRegion(const Rect &r)
-{
-    nvgScissor(nvg, r.L, r.T, r.W(), r.H());
-}
-
-void NanoVGGraphics::pathClipRegion(const Rect r)
-{
-    Rect drawArea = layers.empty() ? clipRect : layers.top()->getBounds();
-    Rect clip = r.isEmpty() ? drawArea : r.Intersect(drawArea);
-    pathTransformSetMatrix(Matrix());
-    setClipRegion(clip);
-    pathTransformSetMatrix(transform);
-}
-
-void NanoVGGraphics::pathTransformSave()
-{
-    transformStates.push(transform);
-}
-
-void NanoVGGraphics::pathTransformReset(bool clearStates)
-{
-    if (clearStates)
-  {
-    std::stack<Matrix> newStack;
-    transformStates.swap(newStack);
-  }
-  
-  transform = Matrix();
-  pathTransformSetMatrix(transform);
-}
-
-void NanoVGGraphics::pathTransformRestore()
-{
-    if (!transformStates.empty())
-    {
-        transform = transformStates.top();
-        transformStates.pop();
-        pathTransformSetMatrix(transform);
-    }
-}
-
-void NanoVGGraphics::pathClear()
-{
-    nvgBeginPath(nvg);
-}
-
-void NanoVGGraphics::pathTransformSetMatrix(const Matrix& m)
-{
-    float xTranslate = 0.0f;
-    float yTranslate = 0.0f;
-
-    if (!layers.empty())
-    {
-        Rect bounds = layers.top()->getBounds();
-
-        xTranslate = -bounds.L;
-        yTranslate = -bounds.T;
-    }
-
-    nvgResetTransform(nvg);
-    nvgScale(nvg, getDrawScale(), getDrawScale());
-    nvgTranslate(nvg, xTranslate, yTranslate);
-    nvgTransform(nvg, m.mXX, m.mYX, m.mXY, m.mYY, m.mTX, m.mTY);
 }
 
 void NanoVGGraphics::initialise()
@@ -349,13 +267,9 @@ void NanoVGGraphics::initialise()
         windowHeight,
         0);
 
-    mnvgBindFramebuffer(mainFrameBuffer);
-    mnvgClearWithColor(nvg, nvgRGBA(0, 0, 0, 0));
-
-    nvgBeginFrame(nvg, windowWidth, windowHeight, 1.0f);
-    nvgEndFrame(nvg);
-
     contextCreated(nvg);
+
+    render();
 
     DBG("Initialised successfully");
 }
@@ -374,9 +288,6 @@ void NanoVGGraphics::render()
     beginFrame();
     this->draw(*this);
     endFrame();
-
-    inDraw = false;
-    clearFBOStack();
 }
 
 void NanoVGGraphics::beginFrame()
@@ -387,7 +298,6 @@ void NanoVGGraphics::beginFrame()
 
     inDraw = true;
     mnvgBindFramebuffer(mainFrameBuffer); // begin main frame buffer update
-    mnvgClearWithColor(nvg, nvgRGBA(0, 0, 0, 0));
     nvgBeginFrame(nvg, windowWidth, windowHeight, 1.0f);
 }
 
@@ -409,4 +319,7 @@ void NanoVGGraphics::endFrame()
     nvgRestore(nvg);
 
     nvgEndFrame(nvg);
+
+    inDraw = false;
+    clearFBOStack();
 }

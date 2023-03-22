@@ -50,24 +50,6 @@ struct Rect
     float CX() const { return 0.5f * (R + L); }
 };
 
-struct Matrix
-{
-    /** Create an IMatrix, specifying the values
-     * @param xx xx component of the affine transformation
-     * @param yx yx component of the affine transformation
-     * @param xy xy component of the affine transformation
-     * @param yy yy component of the affine transformation
-     * @param tx X translation component of the affine transformation
-     * @param ty Y translation component of the affine transformation */
-    Matrix(double xx, double yx, double xy, double yy, double tx, double ty)
-    : mXX(xx), mYX(yx), mXY(xy), mYY(yy), mTX(tx), mTY(ty)
-    {}
-    /** Create an identity matrix */
-    Matrix() : Matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
-    {}
-    double mXX, mYX, mXY, mYY, mTX, mTY;
-};
-
 /** Used to manage composite/blend operations, independent of draw class/platform */
 struct Blend
 {
@@ -105,6 +87,9 @@ class APIBitmap
 public:
     APIBitmap(NanoVGGraphics& g, int width_, int height_, float scale_, float drawScale_);
     ~APIBitmap();
+
+    APIBitmap (const APIBitmap&) = delete;
+    APIBitmap& operator= (const APIBitmap&) = delete;
 
     int width, height;
     float scale, drawScale;

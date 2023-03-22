@@ -7,14 +7,8 @@ APIBitmap::APIBitmap(NanoVGGraphics& g, int width_, int height_, float scale_, f
     , scale(scale_)
     , drawScale(drawScale_)
     , graphics(g)
+    , FBO(mnvgCreateFramebuffer(g.getContext(), width, height, 0))
 {
-    auto* nvg = g.getContext();
-    FBO = mnvgCreateFramebuffer(nvg, width, height, 0);
-    mnvgBindFramebuffer(FBO);
-    mnvgClearWithColor(nvg, nvgRGBA(0, 0, 0, 0));
-
-    nvgBeginFrame(nvg, width, height, 1.0f);
-    nvgEndFrame(nvg);
 }
 
 APIBitmap::~APIBitmap()
@@ -46,6 +40,8 @@ void ComponentLayer::draw(NanoVGGraphics& g)
 
         g.drawLayer(layer, &blend);
     }
-    
+    else
+        drawCachable(g);
+
     drawAnimated(g);
 }
