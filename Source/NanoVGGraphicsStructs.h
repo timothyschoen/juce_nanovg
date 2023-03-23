@@ -1,6 +1,6 @@
 #pragma once
 #include <nanovg_compat/nanovg_compat.h>
-#include <juce_core/juce_core.h>
+#include <juce_graphics/juce_graphics.h>
 
 class ComponentLayer;
 class NanoVGGraphics;
@@ -10,7 +10,7 @@ struct Rect
 {
     Rect(): L(0), T(0), R(0), B(0) {}
     Rect(float l, float t, float r, float b): L(l), T(t), R(r), B(b) {}
-    // Rect(const juce::Rectangle<float>& r): Rect(r.getX(), r.getRight(), r.getRight(), r.getBottom()) {}
+    Rect(const juce::Rectangle<float>& r): Rect(r.getX(), r.getRight(), r.getRight(), r.getBottom()) {}
 
     bool operator==(const Rect& other) const { return (L == other.L && T == other.T && R == other.R && B == other.B); }
     bool operator!=(const Rect& other) const { return !(*this == other); }

@@ -6,7 +6,10 @@ CacheTest::CacheTest(): NanoVGGraphics(*(juce::Component*)this)
     setOpaque(true);
     setCachedComponentImage(nullptr);
     setBufferedToImage(false);
-    startTimerHz(1);
+
+    addAndMakeVisible(childComponent);
+
+    startTimerHz(60);
 }
 
 CacheTest::~CacheTest()
@@ -17,6 +20,11 @@ void CacheTest::resized()
 {
     bounds.R = getWidth();
     bounds.B = getHeight();
+
+    const int x = getWidth() / 4;
+    const int y = getHeight() / 4;
+
+    childComponent.setBounds(x, y, x*2, y*2);
 }
 
 void CacheTest::drawCachable(NanoVGGraphics& g)
@@ -39,4 +47,44 @@ void CacheTest::drawAnimated(NanoVGGraphics& g)
     nvgMoveTo(nvg, bounds.L, bounds.CY());
     nvgLineTo(nvg, bounds.R, bounds.CY());
     nvgStroke(nvg);
+
+    childComponent.drawAnimated(g);
+}
+
+CacheTest::HoverTest::HoverTest()
+{
+    setOpaque(true);
+}
+
+void CacheTest::HoverTest::drawCachable(NanoVGGraphics& g)
+{
+}
+
+void CacheTest::HoverTest::drawAnimated(NanoVGGraphics& g)
+{
+    auto* nvg = g.getContext();
+
+    if (mouseIsOver)
+        nvgFillColor(nvg, nvgRGBA(200, 200, 100, 255));
+    else
+        nvgFillColor(nvg, nvgRGBA(100, 200, 200, 255));
+
+    nvgBeginPath(nvg);
+    nvgRect(nvg, getX(), getY(), getWidth(), getHeight());
+    nvgFill(nvg);
+}
+
+void CacheTest::HoverTest::mouseEnter(const juce::MouseEvent &)
+{
+    mouseIsOver = true;
+}
+
+void CacheTest::HoverTest::mouseExit(const juce::MouseEvent &)
+{
+    mouseIsOver = false;
+}
+
+void CacheTest::HoverTest::resized()
+{
+    bounds = Rect(getBounds().toFloat());
 }
