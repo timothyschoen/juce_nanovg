@@ -1,3 +1,5 @@
+#define NANOVG_METAL_IMPLEMENTATION
+
 #import "nanovg_compat.h"
 #import "nanovg_mtl.m"
 

@@ -2,12 +2,12 @@
 #include "PluginEditor.h"
 
 #include "CacheTest.cpp"
-#include "MainComponent.cpp"
-#include "NVGDemoComponent.cpp"
+// #include "MainComponent.cpp"
+// #include "NVGDemoComponent.cpp"
 #include "PluginEditor.cpp"
-#include "../NanoVGComponent.cpp"
+// #include "../NanoVGComponent.cpp"
 #include "../NanoVGGraphics.cpp"
-#include "../NanoVGGraphicsContext.cpp"
+// #include "../NanoVGGraphicsContext.cpp"
 #include "../NanoVGGraphicsStructs.cpp"
 
 //==============================================================================

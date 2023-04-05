@@ -49,21 +49,21 @@ void NanoVGGraphics::componentMovedOrResized (juce::Component& comp, bool, bool 
         windowHeight = comp.getHeight();
 
         if (auto* display {juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()})
-            scale = std::max((float)display->scale, 1.0f);
+            scale = std::max<float>((float)display->scale, 1.0f);
 
         if (nvg)
         {
             nvgReset(nvg);
 
             if (mainFrameBuffer != nullptr)
-                mnvgDeleteFramebuffer(mainFrameBuffer);
+                nvgDeleteFramebuffer(nvg, mainFrameBuffer);
 
-            mnvgSetViewBounds(
+            nvgSetViewBounds(
                 attachedComponent.getPeer()->getNativeHandle(),
                 windowWidth,
                 windowHeight);
 
-            mainFrameBuffer = mnvgCreateFramebuffer(
+            mainFrameBuffer = nvgCreateFramebuffer(
                 nvg,
                 windowWidth,
                 windowHeight,
@@ -80,15 +80,15 @@ void NanoVGGraphics::timerCallback()
 void NanoVGGraphics::onViewDestroyed()
 {
     if (mainFrameBuffer)
-        mnvgDeleteFramebuffer(mainFrameBuffer);
+        nvgDeleteFramebuffer(nvg, mainFrameBuffer);
     if (nvg)
-        nvgDeleteMTL(nvg);
+        nvgDeleteContext(nvg);
 }
 
-void NanoVGGraphics::deleteFBO(MNVGframebuffer * pBuffer)
+void NanoVGGraphics::deleteFBO(NVGframebuffer * pBuffer)
 {
     if (!inDraw)
-        mnvgDeleteFramebuffer(pBuffer);
+        nvgDeleteFramebuffer(nvg, pBuffer);
     else
     {
         juce::ScopedLock sl (FBOLock);
@@ -101,12 +101,12 @@ void NanoVGGraphics::clearFBOStack()
     juce::ScopedLock sl (FBOLock);
     while (!FBOStack.empty())
     {
-        mnvgDeleteFramebuffer(FBOStack.top());
+        nvgDeleteFramebuffer(nvg, FBOStack.top());
         FBOStack.pop();
     }
 }
 
-APIBitmap *NanoVGGraphics::createBitmap(int width, int height, float scale_, double drawScale_)
+APIBitmap *NanoVGGraphics::createBitmap(int width, int height, float scale_, float drawScale_)
 {
     if (inDraw)
         nvgEndFrame(nvg);
@@ -115,9 +115,9 @@ APIBitmap *NanoVGGraphics::createBitmap(int width, int height, float scale_, dou
 
     if (inDraw)
     {
-        mnvgBindFramebuffer(mainFrameBuffer); // begin main frame buffer update
+        nvgBindFramebuffer(nvg, mainFrameBuffer); // begin main frame buffer update
         // nvgBeginFrame(nvg, windowWidth, windowHeight, getScreenScale());
-        nvgBeginFrame(nvg, windowWidth, windowHeight, 1.0f);
+        nvgBeginFrame(nvg, (float)windowWidth, (float)windowHeight, 1.0f);
     }
 
     return pAPIBitmap;
@@ -164,34 +164,32 @@ void NanoVGGraphics::updateLayer()
     if (layers.empty())
     {
         nvgEndFrame(nvg);
-        // #ifdef IGRAPHICS_GL
-        // glViewport(0, 0, WindowWidth() * GetScreenScale(), WindowHeight() * GetScreenScale());
-        // #endif
-        mnvgBindFramebuffer(mainFrameBuffer);
+
+        nvgBindFramebuffer(nvg, mainFrameBuffer);
         // nvgBeginFrame(nvg, windowWidth, windowHeight, getScreenScale());
-        nvgBeginFrame(nvg, windowWidth, windowHeight, 1.0f);
+        nvgBeginFrame(nvg, (float)windowWidth, (float)windowHeight, 1.0f);
     }
     else
     {
         nvgEndFrame(nvg);
-        // #ifdef IGRAPHICS_GL
-        // const double scale = GetBackingPixelScale();
-        // glViewport(0, 0, mLayers.top()->Bounds().W() * scale, mLayers.top()->Bounds().H() * scale);
-        // #endif
-        mnvgBindFramebuffer(layers.top()->bitmap.get()->getFBO());
-        mnvgClearWithColor(nvg, nvgRGBA(0, 0, 0, 0));
+
+        nvgBindFramebuffer(nvg, layers.top()->bitmap.get()->getFBO());
+#ifdef __APPLE__
+        nvgClearWithColor(nvg, nvgRGBA(0, 0, 0, 0));
+#endif
+
         nvgBeginFrame(nvg, layers.top()->getBounds().W(), layers.top()->getBounds().H(), 1.0f);
     }
 }
 
-bool NanoVGGraphics::checkLayer(const Layer::Ptr &layer)
+bool NanoVGGraphics::checkLayer(const Layer::Ptr& l)
 {
-    const APIBitmap* bmp = layer ? layer->bitmap.get() : nullptr;
+    const APIBitmap* bmp = l ? l->bitmap.get() : nullptr;
 
-    if (bmp && layer->component && layer->componentRect != Rect(layer->component->bounds))
+    if (bmp && l->component && l->componentRect != Rect(l->component->bounds))
     {
-        layer->componentRect = Rect(layer->component->bounds);
-        layer->invalidate();
+        l->componentRect = Rect(l->component->bounds);
+        l->invalidate();
     }
 
     return bmp
@@ -200,9 +198,9 @@ bool NanoVGGraphics::checkLayer(const Layer::Ptr &layer)
         && bmp->scale == getScreenScale();
 }
 
-void NanoVGGraphics::drawLayer(const Layer::Ptr &layer, const Blend *pBlend)
+void NanoVGGraphics::drawLayer(const Layer::Ptr& l, const Blend *pBlend)
 {
-    drawBitmap(layer->bitmap.get(), layer->getBounds(), 0, 0, pBlend);
+    drawBitmap(l->bitmap.get(), l->getBounds(), 0, 0, pBlend);
 }
 
 void NanoVGGraphics::drawBitmap(const APIBitmap* bitmap, const Rect& dest, int srcX, int srcY, const Blend* pBlend)
@@ -211,14 +209,14 @@ void NanoVGGraphics::drawBitmap(const APIBitmap* bitmap, const Rect& dest, int s
 
     // First generate a scaled image paint
     NVGpaint imgPaint;
-    double trsansformScale = 1.0 / (bitmap->scale * bitmap->drawScale);
+    float trsansformScale = 1.0f / (bitmap->scale * bitmap->drawScale);
 
     nvgTransformScale(imgPaint.xform, trsansformScale, trsansformScale);
 
-    imgPaint.xform[4] = dest.L - srcX;
-    imgPaint.xform[5] = dest.T - srcY;
-    imgPaint.extent[0] = bitmap->width * bitmap->scale;
-    imgPaint.extent[1] = bitmap->height * bitmap->scale;
+    imgPaint.xform[4] = dest.L - (float)srcX;
+    imgPaint.xform[5] = dest.T - (float)srcY;
+    imgPaint.extent[0] = (float)bitmap->width * bitmap->scale;
+    imgPaint.extent[1] = (float)bitmap->height * bitmap->scale;
     // imgPaint.image = pAPIBitmap->GetBitmap();
     imgPaint.image = bitmap->getImageId();
     imgPaint.radius = imgPaint.feather = 0.f;
@@ -235,9 +233,10 @@ void NanoVGGraphics::drawBitmap(const APIBitmap* bitmap, const Rect& dest, int s
     nvgBeginPath(nvg); // Clears the bitmap rect from the path state
 }
 
-void NanoVGGraphics::initialise()
+bool NanoVGGraphics::initialise()
 {
-    if (nvg) return;
+    if (nvg) return true;
+
     DBG("Initialising NanoVG...");
 
     if (attachedComponent.getBounds().isEmpty())
@@ -245,13 +244,13 @@ void NanoVGGraphics::initialise()
         // Component placement is not ready yet - postpone initialisation.
         jassertfalse;
         inDraw = false;
-        return;
+        return false;
     }
 
     attachedComponent.setVisible(true);
 
     if (auto* display {juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()})
-        scale = std::max((float)display->scale, 1.0f);
+        scale = std::max<float>((float)display->scale, 1.0f);
 
     jassert(scale > 0);
     jassert(windowWidth > 0);
@@ -259,28 +258,31 @@ void NanoVGGraphics::initialise()
 
     void* nativeHandle = attachedComponent.getPeer()->getNativeHandle();
     jassert(nativeHandle != nullptr);
-    // onViewInitialised(nativeHandle, getWidth(), getHeight());
-    nvg = mnvgCreateContext(nativeHandle, 0, windowWidth, windowHeight);
-    mainFrameBuffer = mnvgCreateFramebuffer(
+
+    nvg = nvgCreateContext(nativeHandle, 0, windowWidth, windowHeight);
+    jassert(nvg != nullptr);
+
+    mainFrameBuffer = nvgCreateFramebuffer(
         nvg,
         windowWidth,
         windowHeight,
         0);
+    jassert(mainFrameBuffer != nullptr);
+    jassert(mainFrameBuffer->image > 0);
 
     contextCreated(nvg);
 
-    render();
-
     DBG("Initialised successfully");
+    return true;
 }
 
 void NanoVGGraphics::render()
 {
     if (!nvg)
     {
-        jassertfalse;
-        initialise();
-        return;
+        bool success = initialise();
+        if (!success)
+            return;
     }
 
     if (inDraw) return;
@@ -297,28 +299,32 @@ void NanoVGGraphics::beginFrame()
     jassert(mainFrameBuffer != nullptr);
 
     inDraw = true;
-    mnvgBindFramebuffer(mainFrameBuffer); // begin main frame buffer update
-    nvgBeginFrame(nvg, windowWidth, windowHeight, 1.0f);
+    nvgBindFramebuffer(nvg, mainFrameBuffer); // begin main frame buffer update
+    nvgBeginFrame(nvg, (float)windowWidth, (float)windowHeight, 1.0f);
 }
 
 void NanoVGGraphics::endFrame()
 {
     nvgEndFrame(nvg); // end main frame buffer update
-    mnvgBindFramebuffer(nullptr);
-    nvgBeginFrame(nvg, windowWidth, windowHeight, 1.0f);
+    nvgBindFramebuffer(nvg, nullptr);
+    nvgBeginFrame(nvg, (float)windowWidth, (float)windowHeight, 1.0f);
 
-    NVGpaint img = nvgImagePattern(nvg, 0, 0, windowWidth, windowHeight, 0, mainFrameBuffer->image, 1.0f);
+    NVGpaint img = nvgImagePattern(nvg, 0.0f, 0.0f, (float)windowWidth, (float)windowHeight, 0.0f, mainFrameBuffer->image, 1.0f);
 
     nvgSave(nvg);
     nvgResetTransform(nvg);
     // nvgTranslate(nvg, mXTranslation, mYTranslation);
     nvgBeginPath(nvg);
-    nvgRect(nvg, 0, 0, windowWidth, windowHeight);
+    nvgRect(nvg, 0.0f, 0.0f, (float)windowWidth, (float)windowHeight);
     nvgFillPaint(nvg, img);
     nvgFill(nvg);
     nvgRestore(nvg);
 
     nvgEndFrame(nvg);
+
+#ifdef _WIN32
+    d3dPresent();
+#endif
 
     inDraw = false;
     clearFBOStack();

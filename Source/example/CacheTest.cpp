@@ -3,7 +3,6 @@
 
 CacheTest::CacheTest(): NanoVGGraphics(*(juce::Component*)this)
 {
-    setOpaque(true);
     setCachedComponentImage(nullptr);
     setBufferedToImage(false);
 
@@ -18,13 +17,18 @@ CacheTest::~CacheTest()
 
 void CacheTest::resized()
 {
-    bounds.R = getWidth();
-    bounds.B = getHeight();
+    bounds.R = (float)getWidth();
+    bounds.B = (float)getHeight();
 
     const int x = getWidth() / 4;
     const int y = getHeight() / 4;
 
     childComponent.setBounds(x, y, x*2, y*2);
+}
+
+void CacheTest::paint(juce::Graphics &)
+{
+    render();
 }
 
 void CacheTest::drawCachable(NanoVGGraphics& g)
@@ -53,10 +57,9 @@ void CacheTest::drawAnimated(NanoVGGraphics& g)
 
 CacheTest::HoverTest::HoverTest()
 {
-    setOpaque(true);
 }
 
-void CacheTest::HoverTest::drawCachable(NanoVGGraphics& g)
+void CacheTest::HoverTest::drawCachable(NanoVGGraphics&)
 {
 }
 
@@ -70,7 +73,7 @@ void CacheTest::HoverTest::drawAnimated(NanoVGGraphics& g)
         nvgFillColor(nvg, nvgRGBA(100, 200, 200, 255));
 
     nvgBeginPath(nvg);
-    nvgRect(nvg, getX(), getY(), getWidth(), getHeight());
+    nvgRect(nvg, (float)getX(), (float)getY(), (float)getWidth(), (float)getHeight());
     nvgFill(nvg);
 }
 

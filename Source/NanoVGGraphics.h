@@ -52,23 +52,24 @@ public:
     // scale deviation from  default width and height i.e stretching the UI by dragging bottom right hand corner
     float getDrawScale() { return drawScale; }
 
-    APIBitmap* createBitmap(int width, int height, float scale, double drawScale_);
+    APIBitmap* createBitmap(int width, int height, float scale, float drawScale_);
 
-    void deleteFBO(MNVGframebuffer* pBuffer);
+    void deleteFBO(NVGframebuffer* pBuffer);
+protected:
+    void render();
 private:
     void onViewDestroyed();
 
     void clearFBOStack();
 
-    void initialise();
-    void render();
+    bool initialise();
     void beginFrame();
     void endFrame();
 
     juce::Component& attachedComponent;
 
     NVGcontext* nvg = nullptr;
-    MNVGframebuffer* mainFrameBuffer = nullptr;
+    NVGframebuffer* mainFrameBuffer = nullptr;
     int windowWidth = 0, windowHeight = 0;
     float scale = 1.0f, drawScale = 1.0f;
     bool inDraw = false;
@@ -76,7 +77,7 @@ private:
     std::stack<Layer*> layers;
 
     juce::CriticalSection FBOLock;
-    std::stack<MNVGframebuffer*> FBOStack; // A stack of FBOs that requires freeing at the end of the frame
+    std::stack<NVGframebuffer*> FBOStack; // A stack of FBOs that requires freeing at the end of the frame
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NanoVGGraphics)
 };

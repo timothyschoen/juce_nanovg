@@ -10,6 +10,7 @@ public:
     CacheTest();
     ~CacheTest() override;
 
+    void paint(juce::Graphics&) override;
     void drawCachable(NanoVGGraphics& g) override;
     void drawAnimated(NanoVGGraphics& g) override;
     void resized() override;

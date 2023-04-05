@@ -1,6 +1,7 @@
 #pragma once
-#include <nanovg_compat/nanovg_compat.h>
+#include "nanovg_compat/nanovg_compat.h"
 #include <juce_graphics/juce_graphics.h>
+
 
 class ComponentLayer;
 class NanoVGGraphics;
@@ -35,7 +36,7 @@ struct Rect
     inline Rect Intersect(const Rect& other) const
     {
         if (intersects(other))
-        return Rect(std::max(L, other.L), std::max(T, other.T), std::min(R, other.R), std::min(B, other.B));
+            return Rect(std::max<float>(L, other.L), std::max<float>(T, other.T), std::min<float>(R, other.R), std::min<float>(B, other.B));
 
         return Rect();
     }
@@ -91,15 +92,15 @@ public:
     APIBitmap (const APIBitmap&) = delete;
     APIBitmap& operator= (const APIBitmap&) = delete;
 
-    int width, height;
-    float scale, drawScale;
+    int width = 0, height = 0;
+    float scale = 1, drawScale = 1;
 
-    MNVGframebuffer* getFBO() const { return FBO; }
+    NVGframebuffer* getFBO() const { return FBO; }
     // NanoVG texture ID. Lives on GPU
     int getImageId() const { return FBO->image; }
 private:
     NanoVGGraphics& graphics;
-    MNVGframebuffer* FBO = nullptr;
+    NVGframebuffer* FBO = nullptr;
 };
 
 class Layer

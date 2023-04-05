@@ -6,7 +6,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     : AudioProcessorEditor (&p), processorRef (p)
 {
     juce::ignoreUnused (processorRef);
-    setOpaque(false);
+    setCachedComponentImage(nullptr);
+    setBufferedToImage(false);
+
 
     if (auto* window = juce::TopLevelWindow::getTopLevelWindow(0))
     {
@@ -16,12 +18,11 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     // addChildComponent(mainComp);
     // addChildComponent(demoComp);
     addChildComponent(cacheTest);
-    setColour(juce::ResizableWindow::ColourIds::backgroundColourId, juce::Colours::black);
-    
 
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    getConstrainer()->setMaximumSize(1000, 600);
+    getConstrainer()->setMaximumSize(2000, 1200);
+    getConstrainer()->setMinimumSize(250, 150);
     setSize (1000, 600);
     setResizable(true, true);
 }

@@ -7,7 +7,7 @@ APIBitmap::APIBitmap(NanoVGGraphics& g, int width_, int height_, float scale_, f
     , scale(scale_)
     , drawScale(drawScale_)
     , graphics(g)
-    , FBO(mnvgCreateFramebuffer(g.getContext(), width, height, 0))
+    , FBO(nvgCreateFramebuffer(g.getContext(), width, height, 0))
 {
 }
 
