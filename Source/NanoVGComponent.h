@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "NanoVGGraphics.h"
+#include "NanoVGGraphicsContext.h"
 
 /**
     JUCE UI component rendered usin nanovg
@@ -12,7 +12,6 @@
           rendered with nanovg as well.
 */
 
-struct MNVGframebuffer;
 
 class NanoVGComponent :
 #if NANOVG_METAL_IMPLEMENTATION
@@ -38,7 +37,7 @@ private:
     bool currentlyPainting {false};
     bool showRenderStats {false};
 
-    MNVGframebuffer* mainFrameBuffer = nullptr;
+    NVGframebuffer* mainFrameBuffer = nullptr;
 
     std::unique_ptr<NanoVGGraphicsContext> nvgGraphicsContext {nullptr};
 

@@ -50,89 +50,51 @@ juce_add_binary_data(staticFiles SOURCES
 
 #-------- nanovg --------
 
-set(NANOVG_SRC ${CMAKE_CURRENT_SOURCE_DIR}/Source/nanovg_compat/nanovg_compat.c)
+set(NANOVG_SRC  ${CMAKE_CURRENT_SOURCE_DIR}/Source/nanovg_compat/nanovg_compat.c)
 if(APPLE)
-    list(APPEND NANOVG_SRC ${CMAKE_CURRENT_SOURCE_DIR}/Source/nanovg_compat/nanovg_compat.m)
-endif()
-
-add_library(nanovg STATIC ${NANOVG_SRC})
-target_include_directories(nanovg
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/modules/nanovg/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/modules/MetalNanoVG/src)
-# enable automatic reference counting, needed for nvg_metal
-if(APPLE)
-    set_property (TARGET nanovg APPEND_STRING PROPERTY
-                  COMPILE_FLAGS "-fobjc-arc")
+    list(APPEND NANOVG_SRC  ${CMAKE_CURRENT_SOURCE_DIR}/Source/nanovg_compat/nanovg_compat.m)
 endif()
 
 #---------------------
+    
+target_compile_definitions(${PROJECT_NAME}
+    PUBLIC
+        JUCE_DISPLAY_SPLASH_SCREEN=0
+        JUCE_VST3_CAN_REPLACE_VST2=0
+        DONT_SET_USING_JUCE_NAMESPACE=1
+        GLEW_STATIC
+)
 
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/modules/JUCE/modules
+        ${CMAKE_CURRENT_SOURCE_DIR}/modules/nanovg_dx11/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/modules/MetalNanoVG/src
+)
+
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        ${NANOVG_SRC}
+        # ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/Main.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/PluginProcessor.cpp
+)
+
+    
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         staticFiles
         juce::juce_audio_utils
-        juce::juce_gui_basics
-        juce::juce_opengl
-        ${FREETYPE_LIBRARIES}
+        juce::juce_audio_plugin_client
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
 
-target_compile_definitions(${PROJECT_NAME}
-    PUBLIC
-        JUCE_DISPLAY_SPLASH_SCREEN=0
-        JUCE_VST3_CAN_REPLACE_VST2=0
-        DONT_SET_USING_JUCE_NAMESPACE=1)
-if(APPLE)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC NANOVG_METAL_IMPLEMENTATION)
-else()
-    target_compile_definitions(${PROJECT_NAME} PUBLIC NANOVG_GLES2_IMPLEMENTATION)
-endif()
-
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        nanovg
-        staticFiles
-        juce::juce_core
-        juce::juce_data_structures
-        juce::juce_audio_utils
-        juce::juce_gui_extra
-        juce::juce_opengl
-    PUBLIC
-        juce::juce_recommended_config_flags
-)
-
-target_include_directories(${PROJECT_NAME}
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/modules/JUCE/modules
-        ${CMAKE_CURRENT_SOURCE_DIR}/modules/nanovg/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/modules/MetalNanoVG/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/Source)
-
-target_sources(${PROJECT_NAME}
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/Source/NanoVGComponent.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Source/NanoVGGraphics.cpp
-        # ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/Main.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/MainComponent.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/NVGDemoComponent.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/PluginEditor.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/PluginProcessor.cpp
-)
-
-if(APPLE)
-  target_link_libraries(${PROJECT_NAME}
-      PRIVATE
-  "-framework Metal"
-  )
-endif()
-
-if("${CMAKE_SYSTEM}" MATCHES "Linux")
-  target_link_libraries(${PROJECT_NAME}
-      PRIVATE
-  -lGL -lGLEW -lGLX
-  )
+if (WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE d3d11 dxguid)
+elseif(APPLE)
+    target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Metal")
+elseif("${CMAKE_SYSTEM}" MATCHES "Linux")
+    target_link_libraries(${PROJECT_NAME} PRIVATE -lGL -lGLEW -lGLX)
 endif()

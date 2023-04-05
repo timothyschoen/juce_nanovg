@@ -6,6 +6,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     : AudioProcessorEditor (&p), processorRef (p)
 {
     juce::ignoreUnused (processorRef);
+    setCachedComponentImage(nullptr);
+    setBufferedToImage(false);
+
 
     if (auto* window = juce::TopLevelWindow::getTopLevelWindow(0))
     {
@@ -13,10 +16,13 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     }
 
     // addChildComponent(mainComp);
-    addChildComponent(demoComp);
+    // addChildComponent(demoComp);
+    addChildComponent(cacheTest);
 
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
+    getConstrainer()->setMaximumSize(2000, 1200);
+    getConstrainer()->setMinimumSize(250, 150);
     setSize (1000, 600);
     setResizable(true, true);
 }
@@ -30,6 +36,7 @@ AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
 void AudioPluginAudioProcessorEditor::resized()
 {
     // mainComp.setBounds(getLocalBounds());
-    demoComp.setBounds(0, 0, getWidth(), getHeight());
+    // demoComp.setBounds(0, 0, getWidth(), getHeight());
+    cacheTest.setBounds(getLocalBounds());
 }
 //==============================================================================

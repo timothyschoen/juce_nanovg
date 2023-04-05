@@ -1,126 +1,83 @@
-//
-//  Copyright (C) 2022 Arthur Benilov <arthur.benilov@gmail.com> and Timothy Schoen <timschoen123@gmail.com>
-//
-
 #pragma once
-#include "nanovg_compat/nanovg_compat.h"
-#include <juce_opengl/juce_opengl.h>
+#include <stack>
+#include <juce_gui_basics/juce_gui_basics.h>
+#include "NanoVGGraphicsStructs.h"
 
-#if defined NANOVG_GL2_IMPLEMENTATION
-    #define NANOVG_GL_IMPLEMENTATION 1
-    #define nvgCreateContext(flags) nvgCreateGL2(flags)
-    #define nvgDeleteContext(context) nvgDeleteGL2(context)
-#elif defined NANOVG_GLES2_IMPLEMENTATION
-    #define NANOVG_GL_IMPLEMENTATION 1
-    #define nvgCreateContext(flags) nvgCreateGLES2(flags)
-    #define nvgDeleteContext(context) nvgDeleteGLES2(context)
-#elif defined NANOVG_GL3_IMPLEMENTATION
-    #define NANOVG_GL_IMPLEMENTATION 1
-    #define nvgCreateContext(flags) nvgCreateGL3(flags)
-    #define nvgDeleteContext(context) nvgDeleteGL3(context)
-#elif defined NANOVG_GLES3_IMPLEMENTATION
-    #define NANOVG_GL_IMPLEMENTATION 1
-    #define nvgCreateContext(flags) nvgCreateGLES3(flags)
-    #define nvgDeleteContext(context) nvgDeleteGLES3(context)
-#elif defined NANOVG_METAL_IMPLEMENTATION
-    #define nvgCreateContext(layer, flags, w, h) mnvgCreateContext(layer, flags, w, h)
-    #define nvgDeleteContext(context) nvgDeleteMTL(context)
-    #define nvgBindFramebuffer(fb) mnvgBindFramebuffer(fb)
-    #define nvgCreateFramebuffer(ctx, w, h, flags) mnvgCreateFramebuffer(ctx, w, h, flags)
-    #define nvgDeleteFramebuffer(fb) mnvgDeleteFramebuffer(fb)
-#endif
 
-/**
-    JUCE low level graphics context backed by nanovg.
-
-    @note This is not a perfect translation of the JUCE
-          graphics, but its still quite usable.
-*/
-
-class NanoVGGraphicsContext : public juce::LowLevelGraphicsContext
+class NanoVGGraphics
+    : private juce::ComponentListener
+    , public juce::Timer
+    , public ComponentLayer
 {
 public:
-    NanoVGGraphicsContext (void* nativeHandle, int width, int height, float scale);
-    ~NanoVGGraphicsContext() override;
+    NanoVGGraphics(juce::Component&);
+    ~NanoVGGraphics() override;
 
-    bool isVectorDevice() const override;
-    void setOrigin (juce::Point<int>) override;
-    void addTransform (const juce::AffineTransform&) override;
-    float getPhysicalPixelScaleFactor() override;
+    void componentMovedOrResized (juce::Component& component, bool wasMoved, bool wasResized) override;
+    void timerCallback() override;
 
-    bool clipToRectangle (const juce::Rectangle<int>&) override;
-    bool clipToRectangleList (const juce::RectangleList<int>&) override;
-    void excludeClipRectangle (const juce::Rectangle<int>&) override;
-    void clipToPath (const juce::Path&, const juce::AffineTransform&) override;
-    void clipToImageAlpha (const juce::Image&, const juce::AffineTransform&) override;
-
-    bool clipRegionIntersects (const juce::Rectangle<int>&) override;
-    juce::Rectangle<int> getClipBounds() const override;
-    bool isClipEmpty() const override;
-
-    void saveState() override;
-    void restoreState() override;
-
-    void beginTransparencyLayer (float opacity) override;
-    void endTransparencyLayer() override;
-
-    void setFill (const juce::FillType&) override;
-    void setOpacity (float) override;
-    void setInterpolationQuality (juce::Graphics::ResamplingQuality) override;
-
-    void fillRect (const juce::Rectangle<int>&, bool) override;
-    void fillRect (const juce::Rectangle<float>&) override;
-    void fillRectList (const juce::RectangleList<float>&) override;
-
-    void setPath (const juce::Path& path, const juce::AffineTransform& transform);
-
-    void strokePath (const juce::Path&, const juce::PathStrokeType&, const juce::AffineTransform&);
-    void fillPath (const juce::Path&, const juce::AffineTransform&) override;
-    void drawImage (const juce::Image&, const juce::AffineTransform&) override;
-    void drawLine (const juce::Line<float>&) override;
-
-    void setFont (const juce::Font&) override;
-    const juce::Font& getFont() override;
-    void drawGlyph (int glyphNumber, const juce::AffineTransform&) override;
-    bool drawTextLayout (const juce::AttributedString&, const juce::Rectangle<float>&) override;
-
-    void resized (int w, int h, float scale);
-    void removeCachedImages();
+    virtual void contextCreated(NVGcontext*) {}
 
     NVGcontext* getContext() const { return nvg; }
 
-    const static juce::String defaultTypefaceName;
-    const static int imageCacheSize;
+    /** Create an IGraphics layer. Switches drawing to an offscreen bitmap for drawing
+     * IControl* pOwner The control that owns the layer
+     * @param r The bounds of the layer within the IGraphics context
+     * @param cacheable Used to make sure the underlying bitmap can be shared between plug-in instances */
+    void startLayer(ComponentLayer* pControl, const Rect& r);
+    /** End an IGraphics layer. Switches drawing back to the main context
+     * @return ILayerPtr a pointer to the layer, which should be kept around in order to draw it */
+    Layer::Ptr endLayer();
+    void pushLayer(Layer*);
+    Layer* popLayer();
+    void updateLayer();
+    /** Test to see if a layer needs drawing, for instance if the control's bounds were changed
+     * @param layer The layer to check
+     * @return \c true if the layer needs to be updated */
+    bool checkLayer(const Layer::Ptr& layer);
+    /** Draw a layer to the main IGraphics context
+     * @param layer The layer to draw
+     * @param pBlend Optional blend method */
+    void drawLayer(const Layer::Ptr& layer, const Blend* pBlend = nullptr);
+    /** Draw a bitmap (raster) image to the graphics context
+     * @param bitmap The bitmap image to draw to the graphics context
+     * @param bounds The rectangular region to draw the image in
+     * @param srcX The X offset in the source image to draw from
+     * @param srcY The Y offset in the source image to draw from
+     * @param pBlend Optional blend method */
+    void drawBitmap(const APIBitmap* bitmap, const Rect& bounds, int srcX, int srcY, const Blend* pBlend = nullptr);
 
+    // eg. 2 for mac retina, 1.5 for windows
+    float getScreenScale() { return scale; }
+    // scale deviation from  default width and height i.e stretching the UI by dragging bottom right hand corner
+    float getDrawScale() { return drawScale; }
+
+    APIBitmap* createBitmap(int width, int height, float scale, float drawScale_);
+
+    void deleteFBO(NVGframebuffer* pBuffer);
+protected:
+    void render();
 private:
-    bool loadFontFromResources (const juce::String& typefaceName);
+    void onViewDestroyed();
 
-    int getNvgImageId (const juce::Image& image);
-    void reduceImageCache();
+    void clearFBOStack();
 
-    NVGcontext* nvg;
+    bool initialise();
+    void beginFrame();
+    void endFrame();
 
-    int width;
-    int height;
-    float scale = 1.0f;
+    juce::Component& attachedComponent;
 
-    juce::Font font;
+    NVGcontext* nvg = nullptr;
+    NVGframebuffer* mainFrameBuffer = nullptr;
+    int windowWidth = 0, windowHeight = 0;
+    float scale = 1.0f, drawScale = 1.0f;
+    bool inDraw = false;
 
-    // Mapping glyph number to a character
-    using GlyphToCharMap = std::map<int, wchar_t>;
+    std::stack<Layer*> layers;
 
-    GlyphToCharMap getGlyphToCharMapForFont (const juce::Font& f);
+    juce::CriticalSection FBOLock;
+    std::stack<NVGframebuffer*> FBOStack; // A stack of FBOs that requires freeing at the end of the frame
 
-    // Mapping font names to glyph-to-character tables
-    std::map<juce::String, GlyphToCharMap> loadedFonts;
-    const GlyphToCharMap* currentGlyphToCharMap;
-
-    // Tracking images mapped tomtextures.
-    struct NvgImage
-    {
-        int id {-1};            ///< Image/texture ID.
-        int accessCounter {0};  ///< Usage counter.
-    };
-
-    std::map<juce::uint64, NvgImage> images;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NanoVGGraphics)
 };
