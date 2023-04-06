@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include <nanovg.h>
+#include "../../modules/nanovg_dx11/src/nanovg.h"
 
 #ifdef _WIN32
 #define D3D11_NO_HELPERS
@@ -41,7 +41,7 @@ void d3dPresent(void);
 typedef D3DNVGframebuffer NVGframebuffer;
 
 #elif defined __APPLE__ 
-#include <nanovg_mtl.h>
+#include "../../modules/MetalNanoVG/src/nanovg_mtl.h"
 
 NVGcontext* mnvgCreateContext(void* view, int flags, int width, int height);
 void mnvgSetViewBounds(void* view, int width, int height);

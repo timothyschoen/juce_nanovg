@@ -15,12 +15,31 @@
 
 class NanoVGComponent :
 #if NANOVG_METAL_IMPLEMENTATION
-    public juce::Component,
+    public juce::Component
 #elif NANOVG_GL_IMPLEMENTATION
-    public juce::OpenGLAppComponent,
+    public juce::OpenGLAppComponent
 #endif
-    public juce::ComponentListener, public juce::Timer
 {
+
+    struct ComponentUpdater : public juce::ComponentListener, public juce::Timer
+    {
+        NanoVGComponent* owner;
+        
+        ComponentUpdater(NanoVGComponent* parent) : owner(parent)
+        {
+            owner->addComponentListener(this);
+        }
+        
+        ~ComponentUpdater()
+        {
+            owner->removeComponentListener(this);
+        }
+        
+        void timerCallback() override;
+        
+        void componentMovedOrResized(juce::Component& component, bool wasMoved, bool wasResized) override;
+    };
+    
 public:
     NanoVGComponent();
     ~NanoVGComponent() override;
@@ -29,10 +48,12 @@ public:
 
     // Setup anything you need here
     virtual void contextCreated(NVGcontext*) {}
+    
+    void addFont(const juce::String& name, const char* data, size_t size);
 
 private:
     void paintComponent();
-    void timerCallback() override;
+    
 
     bool currentlyPainting {false};
     bool showRenderStats {false};
@@ -49,8 +70,6 @@ private:
 
     /** Detach the context from the currently attached component. */
     void detach();
-
-    void componentMovedOrResized (juce::Component& component, bool wasMoved, bool wasResized) override;
 
 #if JUCE_WINDOWS || JUCE_LINUX
     void updateWindowPosition (juce::Rectangle<int> bounds);
@@ -77,6 +96,7 @@ private:
         NanoVGComponent& component;
     };
 
+    ComponentUpdater updater = ComponentUpdater(this);
     //==========================================================================
 
     std::atomic<bool> initialised {false};

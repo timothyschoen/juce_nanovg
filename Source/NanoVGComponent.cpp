@@ -7,7 +7,6 @@
 NanoVGComponent::NanoVGComponent()
 {
     setOpaque (true);
-    addComponentListener (this);
 
 #if NANOVG_METAL_IMPLEMENTATION
     setCachedComponentImage (new RenderCache (*this));
@@ -27,7 +26,7 @@ NanoVGComponent::NanoVGComponent()
 
 NanoVGComponent::~NanoVGComponent()
 {
-    removeComponentListener(this);
+    
 
 #if NANOVG_GL_IMPLEMENTATION
     openGLContext.detach();
@@ -38,6 +37,11 @@ NanoVGComponent::~NanoVGComponent()
         nvgGraphicsContext->removeCachedImages();
         //nvgDeleteContext(nvg);
     }
+}
+
+void NanoVGComponent::addFont(const juce::String& name, const char* data, size_t size)
+{
+    nvgGraphicsContext->loadFont(name, data, static_cast<int>(size));
 }
 
 void NanoVGComponent::paintComponent()
@@ -80,27 +84,27 @@ void NanoVGComponent::paintComponent()
     currentlyPainting = false;
 }
 
-void NanoVGComponent::timerCallback()
+void NanoVGComponent::ComponentUpdater::timerCallback()
 {
-    repaint();
+    owner->repaint();
 }
 
-void NanoVGComponent::componentMovedOrResized (juce::Component&, bool, bool wasResized)
+void NanoVGComponent::ComponentUpdater::componentMovedOrResized (juce::Component&, bool, bool wasResized)
 {
-    if (!initialised)
+    if (!owner->initialised)
         return;
 
-    if (wasResized && nvgGraphicsContext)
+    if (wasResized && owner->nvgGraphicsContext)
     {
-        nvgReset(nvgGraphicsContext->getContext());
+        nvgReset(owner->nvgGraphicsContext->getContext());
 
         if (auto* display {juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()})
-            scale = (float)display->scale;
+            owner->scale = (float)display->scale;
 
-        nvgGraphicsContext->resized(getWidth(), getHeight(), scale);
+        owner->nvgGraphicsContext->resized(owner->getWidth(), owner->getHeight(), owner->scale);
 
 #if NANOVG_METAL_IMPLEMENTATION
-        mnvgSetViewBounds(getPeer()->getNativeHandle(), juce::roundToInt(scale * getWidth()), juce::roundToInt(scale * getHeight()));
+        mnvgSetViewBounds(owner->getPeer()->getNativeHandle(), juce::roundToInt(owner->scale * owner->getWidth()), juce::roundToInt(owner->scale * owner->getHeight()));
 #endif
     }
 }

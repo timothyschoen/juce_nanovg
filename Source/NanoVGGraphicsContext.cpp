@@ -43,7 +43,7 @@ static const char* getResourceByFileName(const juce::String& fileName, int& size
 
 //==============================================================================
 
-const juce::String NanoVGGraphicsContext::defaultTypefaceName = "Verdana-Regular";
+const juce::String NanoVGGraphicsContext::defaultTypefaceName = "InterBold";
 
 const int NanoVGGraphicsContext::imageCacheSize = 256;
 
@@ -64,8 +64,9 @@ NanoVGGraphicsContext::NanoVGGraphicsContext (void* nativeHandle, int w, int h, 
     nvgGlobalCompositeOperation(nvg, NVG_SOURCE_OVER);
 
     jassert(nvg);
+    
 
-    loadFontFromResources(defaultTypefaceName);
+    //loadFontFromResources(defaultTypefaceName);
 }
 
 NanoVGGraphicsContext::~NanoVGGraphicsContext()
@@ -103,7 +104,7 @@ bool NanoVGGraphicsContext::clipToRectangleList (const juce::RectangleList<int>&
 void NanoVGGraphicsContext::excludeClipRectangle (const juce::Rectangle<int>&)
 {
     // @todo
-    jassertfalse;
+    //jassertfalse;
 }
 
 void NanoVGGraphicsContext::clipToPath (const juce::Path& path, const juce::AffineTransform& t)
@@ -444,6 +445,30 @@ void NanoVGGraphicsContext::removeCachedImages()
     images.clear();
 }
 
+bool NanoVGGraphicsContext::loadFont (const juce::String& name, const char* ptr, int size)
+{
+    if (ptr != nullptr && size > 0)
+    {
+        const int id = nvgCreateFontMem (nvg, name.toRawUTF8(),
+                                         (unsigned char*)ptr, size,
+                                         0 // Tell nvg to take ownership of the font data
+                                        );
+
+        if (id >= 0)
+        {
+            juce::Font tmpFont (juce::Typeface::createSystemTypefaceFor (ptr, (size_t)size));
+            loadedFonts[name] = getGlyphToCharMapForFont (tmpFont);
+            currentGlyphToCharMap = &loadedFonts[name];
+            return true;
+        }
+    }
+    else
+    {
+        std::cerr << "Unabled to load " << name << "\n";
+        return false;
+    }
+}
+
 bool NanoVGGraphicsContext::loadFontFromResources (const juce::String& typefaceName)
 {
     auto it = loadedFonts.find (typefaceName);
@@ -455,30 +480,10 @@ bool NanoVGGraphicsContext::loadFontFromResources (const juce::String& typefaceN
     }
 
     int size;
-    juce::String resName {typefaceName + ".ttf"};
+    juce::String resName {typefaceName + "_ttf"};
     const auto* ptr {getResourceByFileName(resName, size)};
 
-    if (ptr != nullptr && size > 0)
-    {
-        const int id = nvgCreateFontMem (nvg, typefaceName.toRawUTF8(),
-                                         (unsigned char*)ptr, size,
-                                         0 // Tell nvg to take ownership of the font data
-                                        );
-
-        if (id >= 0)
-        {
-            juce::Font tmpFont (juce::Typeface::createSystemTypefaceFor (ptr, (size_t)size));
-            loadedFonts[typefaceName] = getGlyphToCharMapForFont (tmpFont);
-            currentGlyphToCharMap = &loadedFonts[typefaceName];
-            return true;
-        }
-    }
-    else
-    {
-        std::cerr << "Unabled to load " << resName << "\n";
-    }
-
-    return false;
+    return loadFont(typefaceName, ptr, size);
 }
 
 int NanoVGGraphicsContext::getNvgImageId (const juce::Image& image)
@@ -565,7 +570,7 @@ NanoVGGraphicsContext::GlyphToCharMap NanoVGGraphicsContext::getGlyphToCharMapFo
         tf->getGlyphPositions (allPrintableAsciiCharacters, glyphs, offsets);
 
         // Make sure we get all the glyphs for the printable characters
-        jassert (glyphs.size() == allPrintableAsciiCharacters.length());
+        jassert (glyphs.size() >= allPrintableAsciiCharacters.length());
 
         const auto* wstr = allPrintableAsciiCharacters.toWideCharPointer();
 

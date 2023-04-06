@@ -89,9 +89,11 @@ public:
 
     NVGcontext* getContext() const { return nvg; }
 
+    bool loadFont (const juce::String& name, const char* ptr, int size);
+    
     const static juce::String defaultTypefaceName;
     const static int imageCacheSize;
-
+    
 private:
     bool loadFontFromResources (const juce::String& typefaceName);
 
