@@ -116,8 +116,9 @@ void NanoVGGraphicsContext::clipToPath (const juce::Path& path, const juce::Affi
 
 void NanoVGGraphicsContext::clipToImageAlpha (const juce::Image&, const juce::AffineTransform&)
 {
+    //nvgScissor(<#NVGcontext *ctx#>, <#float x#>, <#float y#>, <#float w#>, <#float h#>)
     // @todo
-    jassertfalse;
+    //jassertfalse;
 }
 
 bool NanoVGGraphicsContext::clipRegionIntersects (const juce::Rectangle<int>& rect)
@@ -318,7 +319,7 @@ void NanoVGGraphicsContext::fillPath (const juce::Path& path, const juce::Affine
 
 void NanoVGGraphicsContext::drawImage (const juce::Image& image, const juce::AffineTransform& t)
 {
-    if (image.isARGB())
+    if (image.isARGB() || true)
     {
         juce::Image::BitmapData srcData (image, juce::Image::BitmapData::readOnly);
         auto id = getNvgImageId (image);
@@ -342,8 +343,9 @@ void NanoVGGraphicsContext::drawImage (const juce::Image& image, const juce::Aff
         nvgFillPaint (nvg, imgPaint);
         nvgFill (nvg);
     }
-    else
+    else {
         jassertfalse;
+    }
 }
 
 void NanoVGGraphicsContext::drawLine (const juce::Line<float>& line)

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 project(juce_nanovg VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 20)
+set(BUILD_EXAMPLE 0)
 
 if("${CMAKE_SYSTEM}" MATCHES "Linux")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-Bsymbolic")
@@ -12,11 +13,13 @@ endif()
 add_library(juce_nanovg STATIC)
 #-------- JUCE --------
 
-# juce_add_gui_app(${PROJECT_NAME}
-#     PRODUCT_NAME "Test NanoVG"
-#     VERSION "1.0.0"
-#     COMPANY_NAME "Arthur Benilov and Timothy Schoen"
-# )
+if(BUILD_EXAMPLE)
+juce_add_gui_app(juce_nanovg_example
+    PRODUCT_NAME "Test NanoVG"
+    VERSION "1.0.0"
+    COMPANY_NAME "Arthur Benilov and Timothy Schoen"
+)
+endif()
 
 juce_add_binary_data(staticFiles SOURCES
     "Resources/Lucida Grande-Regular.ttf"
@@ -64,6 +67,7 @@ target_compile_definitions(juce_nanovg
     PUBLIC
         GLEW_STATIC
         NANOVG_METAL_IMPLEMENTATION
+        JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED
 )
 
 target_include_directories(juce_nanovg

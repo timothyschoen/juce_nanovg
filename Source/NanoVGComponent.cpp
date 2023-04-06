@@ -3,7 +3,6 @@
 //
 #include "NanoVGComponent.h"
 
-
 NanoVGComponent::NanoVGComponent()
 {
     setOpaque (true);
