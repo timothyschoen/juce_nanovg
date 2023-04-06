@@ -87,6 +87,7 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         # ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/Main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/CacheTest.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/NVGDemoComponent.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/PluginEditor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/PluginProcessor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/NanoVGGraphics.cpp

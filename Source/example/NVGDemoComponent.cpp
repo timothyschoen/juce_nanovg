@@ -39,7 +39,7 @@ int NVGDemoComponent::isBlack(NVGcolor col)
 	return 0;
 }
 
-NVGDemoComponent::NVGDemoComponent()
+NVGDemoComponent::NVGDemoComponent(): NanoVGGraphics(*(juce::Component*)this)
 {
 	// gets limited to 60 anyway on macos
     startTimerHz(100);
@@ -49,8 +49,8 @@ NVGDemoComponent::~NVGDemoComponent()
 {
     if (demoDataInitialised)
 	{
-		if (auto g = getNVGGraphicsContext())
-        	freeDemoData(g->getContext());
+		if (auto* nvg = getContext())
+        	freeDemoData(nvg);
 	}
 }
 
@@ -80,7 +80,24 @@ void NVGDemoComponent::contextCreated(NVGcontext* vg)
 	}
 }
 
-void NVGDemoComponent::paint(juce::Graphics& g)
+void NVGDemoComponent::resized()
+{
+	bounds.L = getX();
+	bounds.T = getY();
+	bounds.R = getRight();
+	bounds.B = getBottom();
+}
+
+void NVGDemoComponent::paint(juce::Graphics&)
+{
+	render();
+}
+
+void NVGDemoComponent::drawCachable(NanoVGGraphics& g)
+{
+}
+
+void NVGDemoComponent::drawAnimated(NanoVGGraphics& g)
 {
 	if (!demoDataInitialised) return;
 
@@ -89,15 +106,19 @@ void NVGDemoComponent::paint(juce::Graphics& g)
     prevTime = timeSeconds;
 	updateGraph(&performanceGraph, dt);
 
+	auto* nvg = g.getContext();
+
 	auto premult = juce::KeyPress::isKeyCurrentlyDown('p');
 	if (premult)
-		g.fillAll(juce::Colours::transparentBlack);
+		nvgClearWithColor(nvg, nvgRGBA(0, 0, 0, 0));
+		// g.fillAll(juce::Colours::transparentBlack);
 	else
-		g.fillAll(juce::Colour::fromFloatRGBA(0.3f, 0.3f, 0.32f, 1.0f));
+		nvgClearWithColor(nvg, nvgRGBAf(0.3f, 0.3f, 0.32f, 1.0f));
+		// g.fillAll(juce::Colour::fromFloatRGBA(0.3f, 0.3f, 0.32f, 1.0f));
 	int blowup = (int)juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::spaceKey);
-    renderDemo(getNVGGraphicsContext()->getContext(), mouseX,mouseY, getWidth(), getHeight(), (float)timeSeconds, blowup);
-    renderGraph(getNVGGraphicsContext()->getContext(), 5, 5, &performanceGraph);
-	renderDrawCallGraph(getNVGGraphicsContext()->getContext());
+    renderDemo(nvg, mouseX,mouseY, getWidth(), getHeight(), (float)timeSeconds, blowup);
+    renderGraph(nvg, 5, 5, &performanceGraph);
+	renderDrawCallGraph(nvg);
 }
 
 //==============================================================================
@@ -187,7 +208,7 @@ void NVGDemoComponent::renderDemo(NVGcontext* vg, float mx, float my, float widt
 	drawButton(vg, ICON_LOGIN, "Sign in", x+138, y, 140, 28, nvgRGBA(0,96,128,255));
 	y += 45;
 
-	// // Slider
+	// Slider
 	drawLabel(vg, "Diameter", x,y, 280,20);
 	y += 25;
 	drawEditBoxNum(vg, "123.00", "px", x+180,y, 100,28);

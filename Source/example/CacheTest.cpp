@@ -3,6 +3,7 @@
 
 CacheTest::CacheTest(): NanoVGGraphics(*(juce::Component*)this)
 {
+    useLayer = true;
     setCachedComponentImage(nullptr);
     setBufferedToImage(false);
 

@@ -1,8 +1,8 @@
 #pragma once
 #include "PluginProcessor.h"
 // #include "MainComponent.h"
-// #include "NVGDemoComponent.h"
-#include "CacheTest.h"
+#include "NVGDemoComponent.h"
+// #include "CacheTest.h"
 
 //==============================================================================
 class AudioPluginAudioProcessorEditor  : public juce::AudioProcessorEditor
@@ -19,8 +19,8 @@ private:
     // access the processor object that created it.
     AudioPluginAudioProcessor& processorRef;
     // MainComponent mainComp;
-    // NVGDemoComponent demoComp;
-    CacheTest cacheTest;
+    NVGDemoComponent demoComp;
+    // CacheTest cacheTest;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };

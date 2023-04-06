@@ -133,7 +133,7 @@ public:
     Layer::Ptr layer;
     Rect bounds;
     Blend blend;
-    bool useLayer = true;
+    bool useLayer = false;
 
 protected:
     void draw(NanoVGGraphics& g);

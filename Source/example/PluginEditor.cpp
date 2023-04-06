@@ -9,15 +9,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     setCachedComponentImage(nullptr);
     setBufferedToImage(false);
 
-
     if (auto* window = juce::TopLevelWindow::getTopLevelWindow(0))
     {
         window->setUsingNativeTitleBar(true);
     }
 
     // addChildComponent(mainComp);
-    // addChildComponent(demoComp);
-    addChildComponent(cacheTest);
+    addChildComponent(demoComp);
+    // addChildComponent(cacheTest);
 
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
@@ -36,7 +35,7 @@ AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
 void AudioPluginAudioProcessorEditor::resized()
 {
     // mainComp.setBounds(getLocalBounds());
-    // demoComp.setBounds(0, 0, getWidth(), getHeight());
-    cacheTest.setBounds(getLocalBounds());
+    demoComp.setBounds(0, 0, getWidth(), getHeight());
+    // cacheTest.setBounds(getLocalBounds());
 }
 //==============================================================================

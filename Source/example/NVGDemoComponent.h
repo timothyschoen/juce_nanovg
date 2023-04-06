@@ -1,9 +1,12 @@
 #pragma once
-#include "../NanoVGComponent.h"
+#include <juce_gui_basics/juce_gui_basics.h>
+#include "../NanoVGGraphics.h"
 
 //==============================================================================
 
-class NVGDemoComponent : public NanoVGComponent
+class NVGDemoComponent
+    : public juce::Component
+    , public NanoVGGraphics
 {
 public:
     NVGDemoComponent();
@@ -11,7 +14,10 @@ public:
 
     void mouseMove (const juce::MouseEvent& e) override;
     void contextCreated(NVGcontext*) override;
-    void paint (juce::Graphics&) override;
+    void resized() override;
+    void paint(juce::Graphics&) override;
+    void drawCachable(NanoVGGraphics& g) override;
+    void drawAnimated(NanoVGGraphics& g) override;
 
 private:
     int loadDemoData(NVGcontext* vg);
