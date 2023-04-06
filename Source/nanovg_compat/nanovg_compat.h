@@ -31,7 +31,7 @@ void d3dnvgDeleteFramebuffer(NVGcontext* ctx, D3DNVGframebuffer* fb);
 
 void d3dPresent(void);
 
-#define nvgCreateContext(layer, flags, w, h) d3dnvgCreateContext((HWND)layer, flags, (unsigned)w, (unsigned)h)
+#define nvgCreateContext(layer, flags, w, h) d3dnvgCreateContext((HWND)layer, flags | NVG_ANTIALIAS | NVG_STENCIL_STROKES, (unsigned)w, (unsigned)h)
 #define nvgDeleteContext(context) d3dnvgDeleteContext(context)
 #define nvgBindFramebuffer(ctx, fb) d3dnvgBindFramebuffer(ctx, fb)
 #define nvgCreateFramebuffer(ctx, w, h, flags) d3dnvgCreateFramebuffer(ctx, w, h, flags)
@@ -46,7 +46,7 @@ typedef D3DNVGframebuffer NVGframebuffer;
 NVGcontext* mnvgCreateContext(void* view, int flags, int width, int height);
 void mnvgSetViewBounds(void* view, int width, int height);
 
-#define nvgCreateContext(layer, flags, w, h) mnvgCreateContext(layer, flags, w, h)
+#define nvgCreateContext(layer, flags, w, h) mnvgCreateContext(layer, flags | NVG_ANTIALIAS | NVG_TRIPLE_BUFFER, w, h)
 #define nvgDeleteContext(context) nvgDeleteMTL(context)
 #define nvgBindFramebuffer(ctx, fb) mnvgBindFramebuffer(fb)
 #define nvgCreateFramebuffer(ctx, w, h, flags) mnvgCreateFramebuffer(ctx, w, h, flags)

@@ -238,7 +238,7 @@ NVGcontext* d3dnvgCreateContext(HWND hwnd, int flags, unsigned int width, unsign
     }
     OutputDebugString("Initialized DX11\n");
 
-    ctx = nvgCreateD3D11(pDevice, flags | NVG_ANTIALIAS | NVG_STENCIL_STROKES);
+    ctx = nvgCreateD3D11(pDevice, flags);
     if (ctx == NULL)
     {
         OutputDebugString("Could not Initialize DX11\n");

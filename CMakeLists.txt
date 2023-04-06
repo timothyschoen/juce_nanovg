@@ -29,23 +29,23 @@ juce_add_plugin(${PROJECT_NAME}
 juce_add_binary_data(staticFiles SOURCES
     "Resources/Lucida Grande-Regular.ttf"
     Resources/Verdana-Regular.ttf
-    modules/nanovg/example/images/image1.jpg
-    modules/nanovg/example/images/image2.jpg
-    modules/nanovg/example/images/image3.jpg
-    modules/nanovg/example/images/image4.jpg
-    modules/nanovg/example/images/image5.jpg
-    modules/nanovg/example/images/image6.jpg
-    modules/nanovg/example/images/image7.jpg
-    modules/nanovg/example/images/image8.jpg
-    modules/nanovg/example/images/image9.jpg
-    modules/nanovg/example/images/image10.jpg
-    modules/nanovg/example/images/image11.jpg
-    modules/nanovg/example/images/image12.jpg
-    modules/nanovg/example/entypo.ttf
-    modules/nanovg/example/NotoEmoji-Regular.ttf
-    modules/nanovg/example/Roboto-Bold.ttf
-    modules/nanovg/example/Roboto-Light.ttf
-    modules/nanovg/example/Roboto-Regular.ttf
+    modules/nanovg_dx11/example/images/image1.jpg
+    modules/nanovg_dx11/example/images/image2.jpg
+    modules/nanovg_dx11/example/images/image3.jpg
+    modules/nanovg_dx11/example/images/image4.jpg
+    modules/nanovg_dx11/example/images/image5.jpg
+    modules/nanovg_dx11/example/images/image6.jpg
+    modules/nanovg_dx11/example/images/image7.jpg
+    modules/nanovg_dx11/example/images/image8.jpg
+    modules/nanovg_dx11/example/images/image9.jpg
+    modules/nanovg_dx11/example/images/image10.jpg
+    modules/nanovg_dx11/example/images/image11.jpg
+    modules/nanovg_dx11/example/images/image12.jpg
+    modules/nanovg_dx11/example/entypo.ttf
+    modules/nanovg_dx11/example/NotoEmoji-Regular.ttf
+    modules/nanovg_dx11/example/Roboto-Bold.ttf
+    modules/nanovg_dx11/example/Roboto-Light.ttf
+    modules/nanovg_dx11/example/Roboto-Regular.ttf
 )
 
 #-------- nanovg --------
@@ -53,6 +53,17 @@ juce_add_binary_data(staticFiles SOURCES
 set(NANOVG_SRC  ${CMAKE_CURRENT_SOURCE_DIR}/Source/nanovg_compat/nanovg_compat.c)
 if(APPLE)
     list(APPEND NANOVG_SRC  ${CMAKE_CURRENT_SOURCE_DIR}/Source/nanovg_compat/nanovg_compat.m)
+endif()
+
+add_library(nanovg STATIC ${NANOVG_SRC})
+target_include_directories(nanovg
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/modules/nanovg_dx11/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/modules/MetalNanoVG/src)
+
+if(APPLE)
+    set_property (TARGET nanovg APPEND_STRING PROPERTY
+                    COMPILE_FLAGS "-fobjc-arc")
 endif()
 
 #---------------------
@@ -74,14 +85,17 @@ target_include_directories(${PROJECT_NAME}
 
 target_sources(${PROJECT_NAME}
     PRIVATE
-        ${NANOVG_SRC}
         # ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/Main.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/CacheTest.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/PluginEditor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/example/PluginProcessor.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Source/NanoVGGraphics.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Source/NanoVGGraphicsStructs.cpp
 )
 
-    
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
+        nanovg
         staticFiles
         juce::juce_audio_utils
         juce::juce_audio_plugin_client
