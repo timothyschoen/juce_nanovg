@@ -70,6 +70,7 @@ DXGI_SWAP_CHAIN_DESC swapDesc;
 ID3D11RenderTargetView* pRenderTargetView;
 ID3D11Texture2D* pDepthStencil;
 ID3D11DepthStencilView* pDepthStencilView;
+ID3D11RenderTargetView* D3D__currentlyBoundView = NULL;
 
 void d3dPresent(void)
 {
@@ -357,13 +358,12 @@ HRESULT d3dnvgSetViewBounds(HWND hwnd, unsigned int width, unsigned int height)
 
 void d3dnvgClearWithColor(NVGcontext* ctx, NVGcolor color)
 {
-    D3D_API_2(pDeviceContext, ClearRenderTargetView, pRenderTargetView, color.rgba);
+    D3D_API_2(pDeviceContext, ClearRenderTargetView, D3D__currentlyBoundView, color.rgba);
     D3D_API_4(pDeviceContext, ClearDepthStencilView, pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0u);
 }
 
 void d3dnvgBindFramebuffer(D3DNVGframebuffer* fb)
 {
-    NVGcolor color = nvgRGBAf(0.0f, 0.0f, 0.0f, 0.0f);
     D3D11_VIEWPORT viewport;
     ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
     viewport.TopLeftX = 0;
@@ -373,23 +373,19 @@ void d3dnvgBindFramebuffer(D3DNVGframebuffer* fb)
 
 	if (fb == NULL)
 	{
-        D3D_API_3(pDeviceContext, OMSetRenderTargets, 1, &pRenderTargetView, pDepthStencilView);
-
         viewport.Width = swapDesc.BufferDesc.Width;
         viewport.Height = swapDesc.BufferDesc.Height;
-        D3D_API_2(pDeviceContext, RSSetViewports, 1, &viewport);
-        D3D_API_2(pDeviceContext, ClearRenderTargetView, pRenderTargetView, color.rgba);
-	}
+        D3D__currentlyBoundView = pRenderTargetView;
+    }
     else
     {
-        D3D_API_3(pDeviceContext, OMSetRenderTargets, 1, &fb->pRenderTargetView, pDepthStencilView);
-
         viewport.Width = fb->width;
         viewport.Height = fb->height;
-        D3D_API_2(pDeviceContext, RSSetViewports, 1, &viewport);
-        D3D_API_2(pDeviceContext, ClearRenderTargetView, fb->pRenderTargetView, color.rgba);
+        D3D__currentlyBoundView = fb->pRenderTargetView;
     }
-    D3D_API_4(pDeviceContext, ClearDepthStencilView, pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0u);
+
+    D3D_API_3(pDeviceContext, OMSetRenderTargets, 1, &D3D__currentlyBoundView, pDepthStencilView);
+    D3D_API_2(pDeviceContext, RSSetViewports, 1, &viewport);
 }
 
 D3DNVGframebuffer* d3dnvgCreateFramebuffer(NVGcontext* ctx, int w, int h, int flags)
