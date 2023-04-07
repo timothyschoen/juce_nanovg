@@ -185,23 +185,40 @@ static HRESULT D3D__initializeDX11(HWND hwnd, unsigned int width, unsigned int h
         swapDesc.SampleDesc.Count = 1;        //The Number of Multisamples per Level
         swapDesc.SampleDesc.Quality = 0;      //between 0(lowest Quality) and one lesser than pDevice->CheckMultisampleQualityLevels
 
+        swapDesc.OutputWindow = hwnd;
+        swapDesc.Windowed = TRUE;
+        swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         swapDesc.BufferDesc.Width = width;
         swapDesc.BufferDesc.Height = height;
         swapDesc.BufferDesc.RefreshRate.Numerator = 60;
         swapDesc.BufferDesc.RefreshRate.Denominator = 1;
-        swapDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        swapDesc.BufferCount = 1;
         swapDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
         swapDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-        swapDesc.OutputWindow = hwnd;
-        swapDesc.Windowed = TRUE;
-        swapDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-        // swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+        // According to randos the internet, BGRA is a format favoured by most hardware.
+        // Using RGBA will often mean that each pixel will have to be converted (swizzled),
+        // which apprently has a ~5% performance cost.
+        swapDesc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+
+        // Using a flip discard model is faster and recommended by Microsoft, but the feature is only
+        // available starting from Windows 8.
+        // Recommended settings: https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-flip-model
+        // First we will attempt the recommended model
+        swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        swapDesc.BufferCount = 2;
         hr = D3D_API_3(pDXGIFactory, CreateSwapChain, (IUnknown*)pDevice, &swapDesc, &pSwapChain);
+
         if (FAILED(hr))
         {
-            OutputDebugString("Failed IDXGIFactory::CreateSwapChain()\n");
+            OutputDebugString("Failed to CreateSwapChain using DXGI_SWAP_EFFECT_FLIP_DISCARD strategy, using fallback...\n");
+            // These settings should work on Windows 7...
+            swapDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+            swapDesc.BufferCount = 1;
+            hr = D3D_API_3(pDXGIFactory, CreateSwapChain, (IUnknown*)pDevice, &swapDesc, &pSwapChain);
+            if (FAILED(hr))
+            {
+                OutputDebugString("Failed IDXGIFactory::CreateSwapChain()\n");
+            }
         }
     }
 
@@ -241,7 +258,7 @@ NVGcontext* d3dnvgCreateContext(HWND hwnd, int flags, unsigned int width, unsign
     ctx = nvgCreateD3D11(pDevice, flags);
     if (ctx == NULL)
     {
-        OutputDebugString("Could not Initialize DX11\n");
+        OutputDebugString("Failed creating NVGcontext\n");
         return NULL;
     }
     return ctx;
@@ -266,7 +283,10 @@ HRESULT d3dnvgSetViewBounds(HWND hwnd, unsigned int width, unsigned int height)
     D3D__lastHeight = height;
 
     if (!pDevice || !pDeviceContext)
+    {
+        OutputDebugString("Cannot use d3dnvgSetViewBounds(). ID3D11Device & ID3D11DeviceContext not initialised.\n");
         return E_FAIL;
+    }
 
     //pDeviceContext->ClearState();
     D3D_API_3(pDeviceContext, OMSetRenderTargets, 1, viewList, NULL);
@@ -276,9 +296,10 @@ HRESULT d3dnvgSetViewBounds(HWND hwnd, unsigned int width, unsigned int height)
     D3D_API_RELEASE(pDepthStencilView);
 
     // Resize render target buffers
-    hr = D3D_API_5(pSwapChain, ResizeBuffers, 1, width, height, swapDesc.BufferDesc.Format, 0);
+    hr = D3D_API_5(pSwapChain, ResizeBuffers, swapDesc.BufferCount, width, height, swapDesc.BufferDesc.Format, 0);
     if (FAILED(hr))
     {
+        OutputDebugString("Failed IDXGISwapChain::ResizeBuffers()\n");
         return hr;
     }
 
@@ -286,10 +307,11 @@ HRESULT d3dnvgSetViewBounds(HWND hwnd, unsigned int width, unsigned int height)
     hr = D3D_API_3(pSwapChain, GetBuffer, 0, &IID_ID3D11Texture2D, (void**)&pBackBufferResource);
     if (FAILED(hr))
     {
+        OutputDebugString("Failed IDXGISwapChain::GetBuffer()\n");
         return hr;
     }
 
-    renderDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    renderDesc.Format = swapDesc.BufferDesc.Format;
     renderDesc.ViewDimension = (swapDesc.SampleDesc.Count>1) ? D3D11_RTV_DIMENSION_TEXTURE2DMS : D3D11_RTV_DIMENSION_TEXTURE2D;
     renderDesc.Texture2D.MipSlice = 0;
 
@@ -297,6 +319,7 @@ HRESULT d3dnvgSetViewBounds(HWND hwnd, unsigned int width, unsigned int height)
     D3D_API_RELEASE(pBackBufferResource);
     if (FAILED(hr))
     {
+        OutputDebugString("Failed ID3D11Device::CreateRenderTargetView()\n");
         return hr;
     }
 
@@ -316,6 +339,7 @@ HRESULT d3dnvgSetViewBounds(HWND hwnd, unsigned int width, unsigned int height)
     hr = D3D_API_3(pDevice, CreateTexture2D, &texDesc, NULL, &pDepthStencil);
     if (FAILED(hr))
     {
+        OutputDebugString("Failed ID3D11Device::CreateTexture2D()\n");
         return hr;
     }
 
@@ -325,6 +349,11 @@ HRESULT d3dnvgSetViewBounds(HWND hwnd, unsigned int width, unsigned int height)
     depthViewDesc.Texture2D.MipSlice = 0;
 
     hr = D3D_API_3(pDevice, CreateDepthStencilView, (ID3D11Resource*)pDepthStencil, &depthViewDesc, &pDepthStencilView);
+    if (FAILED(hr))
+    {
+        OutputDebugString("Failed ID3D11Device::CreateDepthStencilView()\n");
+        return hr;
+    }
     return hr;
 }
 
@@ -375,6 +404,7 @@ D3DNVGframebuffer* d3dnvgCreateFramebuffer(NVGcontext* ctx, int w, int h, int fl
     D3DNVGframebuffer* fb = (D3DNVGframebuffer*)malloc(sizeof(D3DNVGframebuffer));
     if (fb == NULL)
     {
+        OutputDebugString("Failed to allocate a framebuffer");
         return NULL;
     }
 
@@ -387,9 +417,10 @@ D3DNVGframebuffer* d3dnvgCreateFramebuffer(NVGcontext* ctx, int w, int h, int fl
 
     D3D11_RENDER_TARGET_VIEW_DESC renderDesc;
     ZeroMemory(&renderDesc, sizeof(D3D11_RENDER_TARGET_VIEW_DESC));
-	renderDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	renderDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-	renderDesc.Texture2D.MipSlice = 0;
+    // nanovg images use the RGBA format, so we must use the same else the red & blue channels will be flipped
+    renderDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    renderDesc.ViewDimension = (swapDesc.SampleDesc.Count>1) ? D3D11_RTV_DIMENSION_TEXTURE2DMS : D3D11_RTV_DIMENSION_TEXTURE2D;
+    renderDesc.Texture2D.MipSlice = 0;
 
 	hr = D3D_API_3(pDevice, CreateRenderTargetView, tex->tex, &renderDesc, &fb->pRenderTargetView);
     if (FAILED(hr))
