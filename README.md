@@ -18,19 +18,7 @@ If you prefer to draw shapes solely using the NanoVG API, you will quickly find 
 
 In that case, it may be helpful to cache the static parts of your GUI by painting to an image or _framebuffer_. This way you can instead paint the framebuffer on every frame.
 
-To use framebuffers, call `nvgCreateFramebuffer` and store the returned pointer on your class (remember to call `nvgDeleteFramebuffer` in your class destructor!). You will need to delete/create this buffer every time your GUI resizes, so be careful how many of these you use. Next call `nvgBindFramebuffer(fb)` in order to draw to it with all of your NanoVG draw methods. When you're done drawing, remember to switch back to your main buffer using `nvgBindFramebuffer(mainBuffer)`, or if you don't use a main buffer, use `nvgBindFramebuffer(nullptr)` to set the back buffer as the rendering target.
-
-To draw the framebuffer, use this:
-
-```c++
-NVGpaint paint= nvgImagePattern(nvg, x, y, w, h, 0.0f, fb->image, 1.0f);
-nvgBeginPath(nvg); // clears existing path cache
-nvgRect(nvg, x, y, w, h); // fills the path with a rectangle
-nvgFillPaint(nvg, paint); // sets the paint settings to the current state
-nvgFill(nvg); // draw call happens here, using the paint settings
-```
-
-An implementation of caching with framebuffers is found [here](Source/example/CacheTest.h)
+Some examples of caching with framebuffers can be found [here](Source/example/CacheTest.h)
 
 ## Screenshots
 

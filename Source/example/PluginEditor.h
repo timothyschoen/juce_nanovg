@@ -21,6 +21,7 @@ private:
     // MainComponent comp;
     NVGDemoComponent comp;
     // CacheTest comp;
+    // ScopedFramebufferTest comp;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };
