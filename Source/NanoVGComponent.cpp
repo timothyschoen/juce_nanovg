@@ -168,7 +168,7 @@ void NanoVGComponent::render()
     // Render to the new framebuffer
     nvgBeginFrame(nvg, scaledWidth, scaledHeight, scale);
 
-    fbGraphics.reduceClipRegion(invalidBounds);
+    fbGraphics.getInternalContext().clipToRectangle(invalidBounds);
     paintEntireComponent(fbGraphics, true);
     
     //static juce::Random rng;
@@ -204,6 +204,11 @@ void NanoVGComponent::render()
     //nvgDeleteFramebuffer(mainFB);
     nvgDeleteFramebuffer(invalidFB);
 
+    #if NANOVG_GL_IMPLEMENTATION
+        if (!openGLContext.isActive())
+            openGLContext.makeActive();
+    #endif
+    
     invalidArea.clear();
 }
 

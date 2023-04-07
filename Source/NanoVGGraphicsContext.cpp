@@ -446,15 +446,23 @@ const juce::Font& NanoVGGraphicsContext::getFont()
 
 void NanoVGGraphicsContext::drawGlyph (int glyphNumber, const juce::AffineTransform& t)
 {
+    /* This would be better, but there is a problem with glyph lookup currently
     if (currentGlyphToCharMap == nullptr)
         return;
-
-    char txt[2] = {'?', 0};
+    
+    char txt[2] = {(char)glyphNumber, 0};
 
     if (currentGlyphToCharMap->find (glyphNumber) != currentGlyphToCharMap->end())
         txt[0] = (char)currentGlyphToCharMap->at (glyphNumber);
 
-    nvgText (nvg, t.getTranslationX(), t.getTranslationY(), txt, &txt[1]);
+    nvgText (nvg, t.getTranslationX(), t.getTranslationY(), txt, &txt[1]); */
+    
+    
+    juce::Path p;
+    font.getTypefacePtr()->getOutlineForGlyph (glyphNumber, p);
+
+    fillPath (p, juce::AffineTransform::scale (font.getHeight() * font.getHorizontalScale(), font.getHeight())
+                                 .followedBy(t));
 
 }
 
