@@ -111,10 +111,8 @@ void NVGDemoComponent::drawAnimated(NanoVGGraphics& g)
 	auto premult = juce::KeyPress::isKeyCurrentlyDown('p');
 	if (premult)
 		nvgClearWithColor(nvg, nvgRGBA(0, 0, 0, 0));
-		// g.fillAll(juce::Colours::transparentBlack);
 	else
 		nvgClearWithColor(nvg, nvgRGBAf(0.3f, 0.3f, 0.32f, 1.0f));
-		// g.fillAll(juce::Colour::fromFloatRGBA(0.3f, 0.3f, 0.32f, 1.0f));
 	int blowup = (int)juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::spaceKey);
     renderDemo(nvg, mouseX,mouseY, getWidth(), getHeight(), (float)timeSeconds, blowup);
     renderGraph(nvg, 5, 5, &performanceGraph);

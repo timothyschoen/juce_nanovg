@@ -12,6 +12,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     if (auto* window = juce::TopLevelWindow::getTopLevelWindow(0))
     {
         window->setUsingNativeTitleBar(true);
+        window->setCachedComponentImage(nullptr);
+        window->setBufferedToImage(false);
     }
 
     addChildComponent(comp);
