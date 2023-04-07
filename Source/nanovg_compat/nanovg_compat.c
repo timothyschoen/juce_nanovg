@@ -70,8 +70,6 @@ DXGI_SWAP_CHAIN_DESC swapDesc;
 ID3D11RenderTargetView* pRenderTargetView;
 ID3D11Texture2D* pDepthStencil;
 ID3D11DepthStencilView* pDepthStencilView;
-float D3D__lastWidth = 0.0f;
-float D3D__lastHeight = 0.0f;
 
 void d3dPresent(void)
 {
@@ -279,8 +277,8 @@ HRESULT d3dnvgSetViewBounds(HWND hwnd, unsigned int width, unsigned int height)
     D3D11_TEXTURE2D_DESC texDesc;
     D3D11_DEPTH_STENCIL_VIEW_DESC depthViewDesc;
 
-    D3D__lastWidth = width;
-    D3D__lastHeight = height;
+    swapDesc.BufferDesc.Width = width;
+    swapDesc.BufferDesc.Height = height;
 
     if (!pDevice || !pDeviceContext)
     {
@@ -363,7 +361,7 @@ void d3dnvgClearWithColor(NVGcontext* ctx, NVGcolor color)
     D3D_API_4(pDeviceContext, ClearDepthStencilView, pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0u);
 }
 
-void d3dnvgBindFramebuffer(NVGcontext* ctx, D3DNVGframebuffer* fb)
+void d3dnvgBindFramebuffer(D3DNVGframebuffer* fb)
 {
     NVGcolor color = nvgRGBAf(0.0f, 0.0f, 0.0f, 0.0f);
     D3D11_VIEWPORT viewport;
@@ -377,8 +375,8 @@ void d3dnvgBindFramebuffer(NVGcontext* ctx, D3DNVGframebuffer* fb)
 	{
         D3D_API_3(pDeviceContext, OMSetRenderTargets, 1, &pRenderTargetView, pDepthStencilView);
 
-        viewport.Width = D3D__lastWidth;
-        viewport.Height = D3D__lastHeight;
+        viewport.Width = swapDesc.BufferDesc.Width;
+        viewport.Height = swapDesc.BufferDesc.Height;
         D3D_API_2(pDeviceContext, RSSetViewports, 1, &viewport);
         D3D_API_2(pDeviceContext, ClearRenderTargetView, pRenderTargetView, color.rgba);
 	}
@@ -386,11 +384,8 @@ void d3dnvgBindFramebuffer(NVGcontext* ctx, D3DNVGframebuffer* fb)
     {
         D3D_API_3(pDeviceContext, OMSetRenderTargets, 1, &fb->pRenderTargetView, pDepthStencilView);
 
-        int w, h;
-        nvgImageSize(ctx, fb->image, &w, &h);
-
-        viewport.Width = (float)w;
-        viewport.Height = (float)h;
+        viewport.Width = fb->width;
+        viewport.Height = fb->height;
         D3D_API_2(pDeviceContext, RSSetViewports, 1, &viewport);
         D3D_API_2(pDeviceContext, ClearRenderTargetView, fb->pRenderTargetView, color.rgba);
     }
@@ -410,6 +405,8 @@ D3DNVGframebuffer* d3dnvgCreateFramebuffer(NVGcontext* ctx, int w, int h, int fl
 
     ZeroMemory(fb, sizeof(D3DNVGframebuffer));
     fb->image = nvgCreateImageRGBA(ctx, w, h, flags | NVG_IMAGE_RENDER_TARGET, NULL);
+    fb->width = w;
+    fb->height = h;
 
     NVGparams* params = nvgInternalParams(ctx);
     struct D3DNVGcontext* D3D = (struct D3DNVGcontext*)params->userPtr;
