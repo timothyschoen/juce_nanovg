@@ -49,8 +49,9 @@ void CacheTest::drawAnimated(NanoVGGraphics& g)
     nvgStrokeColor(nvg, nvgRGBA(255,255,255,128));
     nvgStrokeWidth(nvg, 1.0f);
     nvgBeginPath(nvg);
-    nvgMoveTo(nvg, bounds.L, bounds.CY());
-    nvgLineTo(nvg, bounds.R, bounds.CY());
+    float y = std::floor(bounds.CY()) + 0.5f;
+    nvgMoveTo(nvg, bounds.L, y);
+    nvgLineTo(nvg, bounds.R, y);
     nvgStroke(nvg);
 
     childComponent.drawAnimated(g);
