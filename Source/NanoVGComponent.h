@@ -51,6 +51,8 @@ public:
     
     void addFont(const juce::String& name, const char* data, size_t size);
 
+    juce::RectangleList<int> invalidArea;
+    
 private:
     void paintComponent();
     
@@ -95,6 +97,7 @@ private:
 
         NanoVGComponent& component;
     };
+
 
     ComponentUpdater updater = ComponentUpdater(this);
     //==========================================================================

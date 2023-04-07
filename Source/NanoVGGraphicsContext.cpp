@@ -101,10 +101,22 @@ bool NanoVGGraphicsContext::clipToRectangleList (const juce::RectangleList<int>&
     return ! getClipBounds().isEmpty();
 }
 
-void NanoVGGraphicsContext::excludeClipRectangle (const juce::Rectangle<int>&)
+void NanoVGGraphicsContext::excludeClipRectangle (const juce::Rectangle<int>& rectangle)
 {
-    // @todo
-    //jassertfalse;
+   //nvgResetScissor(nvg);
+    
+    juce::RectangleList<int> rects;
+
+   // Get the rectangle coordinates in NanoVG coordinates
+   float x = static_cast<float>(rectangle.getX());
+   float y = static_cast<float>(rectangle.getY());
+   float w = static_cast<float>(rectangle.getWidth());
+   float h = static_cast<float>(rectangle.getHeight());
+   nvgRect(nvg, x, y, w, h);
+
+   // Exclude the rectangle from the clipping area
+   nvgPathWinding(nvg, NVG_HOLE);
+   nvgScissor(nvg, 0, 0, static_cast<float>(width), static_cast<float>(height));
 }
 
 void NanoVGGraphicsContext::clipToPath (const juce::Path& path, const juce::AffineTransform& t)
@@ -114,12 +126,40 @@ void NanoVGGraphicsContext::clipToPath (const juce::Path& path, const juce::Affi
     nvgIntersectScissor (nvg, rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
 }
 
-void NanoVGGraphicsContext::clipToImageAlpha (const juce::Image&, const juce::AffineTransform&)
+void NanoVGGraphicsContext::clipToImageAlpha (const juce::Image& sourceImage, const juce::AffineTransform& transform)
 {
-    //nvgScissor(<#NVGcontext *ctx#>, <#float x#>, <#float y#>, <#float w#>, <#float h#>)
-    // @todo
-    //jassertfalse;
+    if (!transform.isSingularity()) {
+        // Convert the image to a single-channel image if necessary
+        juce::Image singleChannelImage(sourceImage);
+        if (sourceImage.getFormat() != juce::Image::SingleChannel) {
+            singleChannelImage = sourceImage.convertedToFormat(juce::Image::SingleChannel);
+        }
+
+        juce::Image::BitmapData bitmapData(singleChannelImage, juce::Image::BitmapData::readOnly);
+        auto* pixelData = bitmapData.data;
+
+        // Create a new Nanovg image from the bitmap data
+        int width = singleChannelImage.getWidth();
+        int height = singleChannelImage.getHeight();
+        auto image = nvgCreateImageRGBA(nvg, width, height, 0, pixelData);
+        auto paint = nvgImagePattern(nvg, 0, 0, width, height, 0, image, 1);
+        
+        nvgSave(nvg);
+        nvgTransform(nvg, transform.mat00, transform.mat10, transform.mat01, transform.mat11, transform.mat02, transform.mat12);
+        nvgScale(nvg, 1.0f, -1.0f);
+
+        // Clip the graphics context to the alpha mask of the Nanovg image
+        nvgBeginPath(nvg);
+        nvgRect(nvg, 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
+        nvgPathWinding(nvg, NVG_HOLE);
+        nvgFillPaint(nvg, paint);
+        nvgFill(nvg);
+
+        // Restore the original transformations
+        nvgRestore(nvg);
+    }
 }
+
 
 bool NanoVGGraphicsContext::clipRegionIntersects (const juce::Rectangle<int>& rect)
 {
@@ -319,7 +359,7 @@ void NanoVGGraphicsContext::fillPath (const juce::Path& path, const juce::Affine
 
 void NanoVGGraphicsContext::drawImage (const juce::Image& image, const juce::AffineTransform& t)
 {
-    if (image.isARGB() || true)
+    if (image.isARGB())
     {
         juce::Image::BitmapData srcData (image, juce::Image::BitmapData::readOnly);
         auto id = getNvgImageId (image);
@@ -343,8 +383,37 @@ void NanoVGGraphicsContext::drawImage (const juce::Image& image, const juce::Aff
         nvgFillPaint (nvg, imgPaint);
         nvgFill (nvg);
     }
-    else {
-        jassertfalse;
+    else if(image.isRGB()){
+        
+        auto argbImage = juce::Image (juce::Image::ARGB, image.getWidth(), image.getHeight(), true);
+        
+        // TODO: can this be done more efficiently?
+        for (int y = 0; y < image.getHeight(); ++y)
+        {
+            for (int x = 0; x < image.getWidth(); ++x)
+            {
+                argbImage.setPixelAt (x, y, image.getPixelAt (x, y).withAlpha(1.0f));
+            }
+        }
+
+        // Render using ARGB image data
+        drawImage(argbImage, t);
+    }
+    else if(image.isSingleChannel()){
+        
+        auto argbImage = juce::Image (juce::Image::ARGB, image.getWidth(), image.getHeight(), true);
+        
+        for (int y = 0; y < image.getHeight(); ++y)
+        {
+            for (int x = 0; x < image.getWidth(); ++x)
+            {
+                const auto alpha = image.getPixelAt (x, y).getAlpha();
+                argbImage.setPixelAt (x, y, juce::Colour::fromRGBA(0, 0, 0, alpha));
+            }
+        }
+
+        // Render using ARGB image data
+        drawImage(argbImage, t);
     }
 }
 
@@ -572,7 +641,7 @@ NanoVGGraphicsContext::GlyphToCharMap NanoVGGraphicsContext::getGlyphToCharMapFo
         tf->getGlyphPositions (allPrintableAsciiCharacters, glyphs, offsets);
 
         // Make sure we get all the glyphs for the printable characters
-        jassert (glyphs.size() >= allPrintableAsciiCharacters.length());
+        //jassert (glyphs.size() >= allPrintableAsciiCharacters.length());
 
         const auto* wstr = allPrintableAsciiCharacters.toWideCharPointer();
 

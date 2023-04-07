@@ -25,7 +25,6 @@ NanoVGComponent::NanoVGComponent()
 
 NanoVGComponent::~NanoVGComponent()
 {
-    
 
 #if NANOVG_GL_IMPLEMENTATION
     openGLContext.detach();
@@ -69,7 +68,6 @@ void NanoVGComponent::paintComponent()
 
             nvgGraphicsContext.reset (new NanoVGGraphicsContext (nativeHandle, (int)width, (int)height, scale));
 
-            //mainFrameBuffer = nvgCreateFramebuffer(nvg, width, height, 0);
             contextCreated(nvgGraphicsContext->getContext());
         }
 
@@ -133,19 +131,96 @@ void NanoVGComponent::initialise()
 void NanoVGComponent::render()
 {
     jassert(initialised);
-
+    
+    
 #if NANOVG_GL_IMPLEMENTATION
     glViewport(0, 0, getWidth() * scale, getHeight() * scale);
     glClearColor(0,0,0,0);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 #endif
 
+    auto compBounds = getLocalBounds();
+    auto invalidBounds = invalidArea.getBounds();
+
+    auto* nvg = nvgGraphicsContext->getContext();
+
+    // Render the component to a framebuffer
+    juce::MessageManager::Lock mmLock;
+    juce::Graphics g (*nvgGraphicsContext.get());
+    
+    auto* fb = nvgCreateFramebuffer(nvg, getWidth(), getHeight(), 0);
+    
+    
+    nvgBindFramebuffer(fb);
+    nvgBeginFrame(nvg, getWidth(), getHeight(), scale);
+    //nvgClearWithColor(nvg, nvgRGBAf(0.0f, 0.0f, 0.0f, 0.0f)); // Replace with your desired clear color
+
+    juce::Graphics fbGraphics (*nvgGraphicsContext.get());
+    // TODO: apply scissor here to clip it
+    // This is still going wrong at the moment
+    //nvgScissor(nvg, invalidBounds.getX(), invalidBounds.getY(), invalidBounds.getWidth(), invalidBounds.getHeight());
+    paintEntireComponent(fbGraphics, true);
+    //nvgResetScissor(nvg);
+    
+    static juce::Random rng;
+
+    //fbGraphics.fillAll (juce::Colour ((juce::uint8) rng.nextInt (255), (juce::uint8) rng.nextInt (255), (juce::uint8) rng.nextInt (255), (juce::uint8) 0x50));
+    
+    // Render the invalidated area to the main context
+    nvgBindFramebuffer(NULL);
+    
+    nvgSave(nvg);
+    nvgResetTransform(nvg);
+    nvgTranslate(nvg, 0, 0);
+    nvgBeginPath(nvg);
+    nvgRect(nvg, 0, 0, getWidth(), getHeight());
+        
+    //nvgBeginPath (nvg);
+    nvgRect (nvg, invalidBounds.getX(), invalidBounds.getY(), invalidBounds.getWidth(), invalidBounds.getHeight());
+    nvgFillPaint (nvg, nvgImagePattern(nvg, invalidBounds.getX(), invalidBounds.getY(), invalidBounds.getWidth(), invalidBounds.getHeight(), 0, fb->image, 1));
+    nvgFill(nvg);
+    nvgGlobalCompositeOperation(nvg, NVG_SOURCE_OVER);
+    nvgEndFrame (nvg);
+    invalidArea.clear();
+    
+    nvgDeleteFramebuffer(fb);
+    
+    /*
     //nvgScissor(nvg, 0, 0, getWidth(), getHeight());
     nvgBeginFrame (nvgGraphicsContext->getContext(), getWidth(), getHeight(), scale);
 
     juce::MessageManager::Lock mmLock;
     juce::Graphics g (*nvgGraphicsContext.get());
-    paintEntireComponent (g, true);
+    
+   
+    //scale = g.getInternalContext().getPhysicalPixelScaleFactor();
+    auto compBounds = getLocalBounds();
+    auto invalidBounds = invalidArea.getBounds();
+
+    if (compBounds.intersects(invalidBounds))
+    {
+        auto& lg = g.getInternalContext();
+
+        //lg.addTransform (juce::AffineTransform::scale (scale));
+        
+        //validArea.subtract(compBounds);
+        
+        lg.clipToRectangle(invalidBounds);
+        
+        //for (auto& i : validArea)
+        //    lg.excludeClipRectangle(i);
+
+        if (! isOpaque())
+        {
+            lg.setFill (juce::Colours::transparentBlack);
+            lg.fillRect (compBounds, true);
+            lg.setFill (juce::Colours::black);
+        }
+
+        paintEntireComponent (g, true);
+    }
+
+    
 
 #if NANOVG_GL_IMPLEMENTATION
     if (!openGLContext.isActive())
@@ -153,7 +228,7 @@ void NanoVGComponent::render()
 #endif
 
     nvgEndFrame (nvgGraphicsContext->getContext());
-    //openGLContext.swapBuffers();
+    //openGLContext.swapBuffers(); */
 }
 
 void NanoVGComponent::shutdown()
@@ -175,19 +250,21 @@ NanoVGComponent::RenderCache::~RenderCache()
 
 void NanoVGComponent::RenderCache::paint (juce::Graphics&)
 {
-    component.paintComponent();
+    triggerAsyncUpdate();
 }
 
 bool NanoVGComponent::RenderCache::invalidateAll()
 {
+    component.invalidArea = component.getLocalBounds();
     triggerAsyncUpdate();
     return true;
 }
 
-bool NanoVGComponent::RenderCache::invalidate (const juce::Rectangle<int>&)
+bool NanoVGComponent::RenderCache::invalidate (const juce::Rectangle<int>& rect)
 {
-    // TODO: more selective invalidation
-    return invalidateAll();
+    component.invalidArea.add(rect);
+    triggerAsyncUpdate();
+    return true;
 }
 
 void NanoVGComponent::RenderCache::releaseResources()
