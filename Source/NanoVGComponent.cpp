@@ -128,108 +128,194 @@ void NanoVGComponent::initialise()
     });
 }
 
+
+
 void NanoVGComponent::render()
 {
     jassert(initialised);
-    
-    
-#if NANOVG_GL_IMPLEMENTATION
-    glViewport(0, 0, getWidth() * scale, getHeight() * scale);
-    glClearColor(0,0,0,0);
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-#endif
 
-    auto compBounds = getLocalBounds();
     auto invalidBounds = invalidArea.getBounds();
+    int x = invalidBounds.getX() * scale;
+    int y = invalidBounds.getY() * scale;
+    int w = invalidBounds.getWidth() * scale;
+    int h = invalidBounds.getHeight() * scale;
+    
+    int scaledHeight = getHeight() * scale;
+    int scaledWidth = getWidth() * scale;
 
     auto* nvg = nvgGraphicsContext->getContext();
 
-    // Render the component to a framebuffer
-    juce::MessageManager::Lock mmLock;
-    juce::Graphics g (*nvgGraphicsContext.get());
-    
-    auto* fb = nvgCreateFramebuffer(nvg, getWidth(), getHeight(), 0);
-    
-    
-    nvgBindFramebuffer(fb);
-    nvgBeginFrame(nvg, getWidth(), getHeight(), scale);
-    //nvgClearWithColor(nvg, nvgRGBAf(0.0f, 0.0f, 0.0f, 0.0f)); // Replace with your desired clear color
-
-    juce::Graphics fbGraphics (*nvgGraphicsContext.get());
-    // TODO: apply scissor here to clip it
-    // This is still going wrong at the moment
-    //nvgScissor(nvg, invalidBounds.getX(), invalidBounds.getY(), invalidBounds.getWidth(), invalidBounds.getHeight());
-    paintEntireComponent(fbGraphics, true);
-    //nvgResetScissor(nvg);
-    
-    static juce::Random rng;
-
-    //fbGraphics.fillAll (juce::Colour ((juce::uint8) rng.nextInt (255), (juce::uint8) rng.nextInt (255), (juce::uint8) rng.nextInt (255), (juce::uint8) 0x50));
-    
-    // Render the invalidated area to the main context
-    nvgBindFramebuffer(NULL);
-    
+    // Save the current state of the context
     nvgSave(nvg);
-    nvgResetTransform(nvg);
-    nvgTranslate(nvg, 0, 0);
-    nvgBeginPath(nvg);
-    nvgRect(nvg, 0, 0, getWidth(), getHeight());
-        
-    //nvgBeginPath (nvg);
-    nvgRect (nvg, invalidBounds.getX(), invalidBounds.getY(), invalidBounds.getWidth(), invalidBounds.getHeight());
-    nvgFillPaint (nvg, nvgImagePattern(nvg, invalidBounds.getX(), invalidBounds.getY(), invalidBounds.getWidth(), invalidBounds.getHeight(), 0, fb->image, 1));
-    nvgFill(nvg);
-    nvgGlobalCompositeOperation(nvg, NVG_SOURCE_OVER);
-    nvgEndFrame (nvg);
-    invalidArea.clear();
-    
-    nvgDeleteFramebuffer(fb);
-    
-    /*
-    //nvgScissor(nvg, 0, 0, getWidth(), getHeight());
-    nvgBeginFrame (nvgGraphicsContext->getContext(), getWidth(), getHeight(), scale);
 
-    juce::MessageManager::Lock mmLock;
-    juce::Graphics g (*nvgGraphicsContext.get());
-    
-   
-    //scale = g.getInternalContext().getPhysicalPixelScaleFactor();
-    auto compBounds = getLocalBounds();
-    auto invalidBounds = invalidArea.getBounds();
-
-    if (compBounds.intersects(invalidBounds))
-    {
-        auto& lg = g.getInternalContext();
-
-        //lg.addTransform (juce::AffineTransform::scale (scale));
-        
-        //validArea.subtract(compBounds);
-        
-        lg.clipToRectangle(invalidBounds);
-        
-        //for (auto& i : validArea)
-        //    lg.excludeClipRectangle(i);
-
-        if (! isOpaque())
-        {
-            lg.setFill (juce::Colours::transparentBlack);
-            lg.fillRect (compBounds, true);
-            lg.setFill (juce::Colours::black);
-        }
-
-        paintEntireComponent (g, true);
+    if(!mainFB) {
+        // Create a new framebuffer for the main context
+        mainFB = nvgCreateFramebuffer(nvg, scaledWidth, scaledHeight, 0);
     }
 
+    // Bind the new framebuffer to the context
+    nvgBindFramebuffer(mainFB);
+
+    juce::MessageManager::Lock mmLock;
+    juce::Graphics fbGraphics(*nvgGraphicsContext.get());
+
+    // Create a new framebuffer for the invalid area
+    NVGframebuffer* invalidFB = nvgCreateFramebuffer(nvg, scaledWidth, scaledHeight, 0);
+
+    // Bind the new framebuffer to the context
+    nvgBindFramebuffer(invalidFB);
+
+    // Render to the new framebuffer
+    nvgBeginFrame(nvg, scaledWidth, scaledHeight, scale);
+
+    fbGraphics.reduceClipRegion(invalidBounds);
+    paintEntireComponent(fbGraphics, true);
     
+    //static juce::Random rng;
+    //fbGraphics.fillAll (juce::Colour ((juce::uint8) rng.nextInt (255), (juce::uint8) rng.nextInt (255), (juce::uint8) rng.nextInt (255), (juce::uint8) 0x50));
 
-#if NANOVG_GL_IMPLEMENTATION
-    if (!openGLContext.isActive())
-        openGLContext.makeActive();
-#endif
+    nvgEndFrame(nvg);
+    
+    // Draw invalid area to mainFB
+    nvgBindFramebuffer(mainFB);
+    nvgBeginFrame(nvg, scaledWidth, scaledHeight, 1.0f);
+    nvgBeginPath(nvg);
+    nvgRect(nvg, x, y, w, h);
+    nvgFillPaint(nvg, nvgImagePattern(nvg, 0, 0, scaledWidth, scaledHeight, 0, invalidFB->image, 1));
+    nvgFill(nvg);
+    nvgEndFrame(nvg);
 
-    nvgEndFrame (nvgGraphicsContext->getContext());
-    //openGLContext.swapBuffers(); */
+    // Bind the default framebuffer to the context (to draw to the screen)
+    nvgBindFramebuffer(0);
+
+    // Restore the previous state of the context
+    nvgRestore(nvg);
+
+    // Draw the main framebuffer onto the screen
+    nvgBeginFrame(nvg, scaledWidth, scaledHeight, 1.0f);
+    nvgBeginPath(nvg);
+    nvgClearWithColor(nvg, nvgRGBAf(0.0f, 0.0f, 0.0f, 0.0f));
+    nvgRect(nvg, 0, 0, scaledWidth, scaledHeight);
+    nvgFillPaint(nvg, nvgImagePattern(nvg, 0, 0, scaledWidth, scaledHeight, 0, mainFB->image, 1));
+    nvgFill(nvg);
+    nvgEndFrame(nvg);
+
+    // Delete the framebuffers
+    //nvgDeleteFramebuffer(mainFB);
+    nvgDeleteFramebuffer(invalidFB);
+
+    invalidArea.clear();
 }
+
+//void NanoVGComponent::render()
+//{
+//    jassert(initialised);
+//
+//
+//#if NANOVG_GL_IMPLEMENTATION
+//    glViewport(0, 0, getWidth() * scale, getHeight() * scale);
+//    glClearColor(0,0,0,0);
+//    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+//#endif
+//
+//    auto compBounds = getLocalBounds();
+//    auto invalidBounds = invalidArea.getBounds();
+//
+//    auto* nvg = nvgGraphicsContext->getContext();
+//
+//    // Render the component to a framebuffer
+//    juce::MessageManager::Lock mmLock;
+//    juce::Graphics g (*nvgGraphicsContext.get());
+//
+//    auto* fb = nvgCreateFramebuffer(nvg, getWidth(), getHeight(), 0);
+//
+//
+//    //nvgBindFramebuffer(fb);
+//    nvgBeginFrame(nvg, getWidth(), getHeight(), scale);
+//    //nvgClearWithColor(nvg, nvgRGBAf(0.0f, 0.0f, 0.0f, 0.0f)); // Replace with your desired clear color
+//
+//    /*
+//    juce::Graphics fbGraphics (*nvgGraphicsContext.get());
+//    // TODO: apply scissor here to clip it
+//    // This is still going wrong at the moment
+//    nvgScissor(nvg, invalidBounds.getX(), invalidBounds.getY(), invalidBounds.getWidth(), invalidBounds.getHeight());
+//    paintEntireComponent(fbGraphics, true);
+//    nvgResetScissor(nvg); */
+//
+//    static juce::Random rng;
+//
+//    //fbGraphics.fillAll (juce::Colour ((juce::uint8) rng.nextInt (255), (juce::uint8) rng.nextInt (255), (juce::uint8) rng.nextInt (255), (juce::uint8) 0x50));
+//
+//    // Render the invalidated area to the main context
+//    //nvgBindFramebuffer(NULL);
+//
+//    nvgSave(nvg);
+//    //nvgResetTransform(nvg);
+//
+//    nvgGlobalCompositeOperation(nvg, NVG_SOURCE_OVER);
+//
+//    //nvgTranslate(nvg, 0, 0);
+//    //nvgBeginPath(nvg);
+//    //nvgRect(nvg, 0, 0, getWidth(), getHeight());
+//
+//    nvgBeginPath (nvg);
+//    nvgRect (nvg, invalidBounds.getX(), invalidBounds.getY(), invalidBounds.getWidth(), invalidBounds.getHeight());
+//    //nvgFillPaint (nvg, nvgImagePattern(nvg, invalidBounds.getX(), invalidBounds.getY(), invalidBounds.getWidth(), invalidBounds.getHeight(), 0, fb->image, 1));
+//    nvgFillColor(nvg, nvgRGBA(255, 0, 0, 255));
+//    nvgFill(nvg);
+//
+//
+//    nvgRestore(nvg);
+//    nvgEndFrame (nvg);
+//    invalidArea.clear();
+//
+//    nvgDeleteFramebuffer(fb);
+//
+//    /*
+//    //nvgScissor(nvg, 0, 0, getWidth(), getHeight());
+//    nvgBeginFrame (nvgGraphicsContext->getContext(), getWidth(), getHeight(), scale);
+//
+//    juce::MessageManager::Lock mmLock;
+//    juce::Graphics g (*nvgGraphicsContext.get());
+//
+//
+//    //scale = g.getInternalContext().getPhysicalPixelScaleFactor();
+//    auto compBounds = getLocalBounds();
+//    auto invalidBounds = invalidArea.getBounds();
+//
+//    if (compBounds.intersects(invalidBounds))
+//    {
+//        auto& lg = g.getInternalContext();
+//
+//        //lg.addTransform (juce::AffineTransform::scale (scale));
+//
+//        //validArea.subtract(compBounds);
+//
+//        lg.clipToRectangle(invalidBounds);
+//
+//        //for (auto& i : validArea)
+//        //    lg.excludeClipRectangle(i);
+//
+//        if (! isOpaque())
+//        {
+//            lg.setFill (juce::Colours::transparentBlack);
+//            lg.fillRect (compBounds, true);
+//            lg.setFill (juce::Colours::black);
+//        }
+//
+//        paintEntireComponent (g, true);
+//    }
+//
+//
+//
+//#if NANOVG_GL_IMPLEMENTATION
+//    if (!openGLContext.isActive())
+//        openGLContext.makeActive();
+//#endif
+//
+//    nvgEndFrame (nvgGraphicsContext->getContext());
+//    //openGLContext.swapBuffers(); */
+//}
 
 void NanoVGComponent::shutdown()
 {
@@ -250,7 +336,7 @@ NanoVGComponent::RenderCache::~RenderCache()
 
 void NanoVGComponent::RenderCache::paint (juce::Graphics&)
 {
-    triggerAsyncUpdate();
+    component.paintComponent();
 }
 
 bool NanoVGComponent::RenderCache::invalidateAll()

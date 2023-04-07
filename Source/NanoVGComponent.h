@@ -60,7 +60,7 @@ private:
     bool currentlyPainting {false};
     bool showRenderStats {false};
 
-    NVGframebuffer* mainFrameBuffer = nullptr;
+    NVGframebuffer* mainFB = nullptr;
 
     std::unique_ptr<NanoVGGraphicsContext> nvgGraphicsContext {nullptr};
 
