@@ -1,5 +1,5 @@
 #include "CacheTest.h"
-
+#include <BinaryData.h>
 
 CacheTest::CacheTest(): NanoVGGraphics(*(juce::Component*)this)
 {
@@ -49,12 +49,15 @@ void CacheTest::drawAnimated(NanoVGGraphics& g)
     nvgStrokeColor(nvg, nvgRGBA(255,255,255,128));
     nvgStrokeWidth(nvg, 1.0f);
     nvgBeginPath(nvg);
-    nvgMoveTo(nvg, bounds.L, bounds.CY());
-    nvgLineTo(nvg, bounds.R, bounds.CY());
+    float y = std::floor(bounds.CY()) + 0.5f;
+    nvgMoveTo(nvg, bounds.L, y);
+    nvgLineTo(nvg, bounds.R, y);
     nvgStroke(nvg);
 
     childComponent.drawAnimated(g);
 }
+
+//==============================================================================
 
 CacheTest::HoverTest::HoverTest()
 {
@@ -91,4 +94,64 @@ void CacheTest::HoverTest::mouseExit(const juce::MouseEvent &)
 void CacheTest::HoverTest::resized()
 {
     bounds = Rect(getBounds().toFloat());
+}
+
+//==============================================================================
+
+ScopedFramebufferTest::ScopedFramebufferTest(): NanoVGGraphics(*(juce::Component*)this)
+{
+    setCachedComponentImage(nullptr);
+    setBufferedToImage(false);
+
+    startTimerHz(60);
+}
+
+ScopedFramebufferTest::~ScopedFramebufferTest()
+{
+}
+
+void ScopedFramebufferTest::contextCreated(NVGcontext* ctx)
+{
+    framebuffer.init(ctx);
+
+    robotoFontId = nvgCreateFontMem(ctx, "robotoRegular", (unsigned char*)BinaryData::RobotoRegular_ttf, BinaryData::RobotoRegular_ttfSize, 0);
+}
+
+void ScopedFramebufferTest::paint(juce::Graphics&)
+{
+    render();
+}
+
+void ScopedFramebufferTest::draw(NanoVGGraphics& g)
+{
+    DBG("draw...");
+    NVGcontext* ctx = g.getContext();
+
+    nvgClearWithColor(ctx, nvgRGBAf(0.3f, 0.3f, 0.4f, 1.0f));
+
+    if (!framebuffer.isValid())
+    {
+        Framebuffer::ScopedBind bind(g, framebuffer);
+
+        nvgBeginPath(ctx);
+        // framebuffers always begin at 0/0
+        nvgRect(ctx, 0.0f, 0.0f, framebuffer.getWidth(), framebuffer.getHeight());
+        nvgFillColor(ctx, nvgRGBAf(0.8f, 0.8f, 0.2f, 1.0f));
+        nvgFill(ctx);
+    }
+    framebuffer.paint();
+
+    nvgFontFaceId(ctx, robotoFontId);
+    nvgFontSize(ctx, 24.0f);
+    nvgTextAlign(ctx, NVG_ALIGN_CENTER|NVG_ALIGN_MIDDLE);
+    nvgFillColor(ctx, nvgRGBAf(0.9f, 0.3f, 1.0f, 1.0f));
+    nvgText(ctx, bounds.CX(), bounds.CY(), "< The rectangle to the left was cached!", nullptr);
+}
+
+void ScopedFramebufferTest::resized()
+{
+    bounds.R = (float)getWidth();
+    bounds.B = (float)getHeight();
+
+    framebuffer.setBounds((float)getWidth() * 0.05f, (float)getHeight() * 0.1f, (float)getWidth() * 0.33, (float)getHeight() * 0.8f);
 }

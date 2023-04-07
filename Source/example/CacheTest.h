@@ -2,6 +2,9 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "../NanoVGGraphics.h"
 
+/**
+ * Uses caching with the iGraphics startLayer() & endLayer()
+*/
 class CacheTest
     : public juce::Component
     , public NanoVGGraphics
@@ -34,4 +37,29 @@ private:
     HoverTest childComponent;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CacheTest)
+};
+
+//==============================================================================
+
+/**
+ * Binds & unbinds framebuffers in a neat RAII style way
+ */
+class ScopedFramebufferTest
+    : public juce::Component
+    , public NanoVGGraphics
+{
+public:
+    ScopedFramebufferTest();
+    ~ScopedFramebufferTest() override;
+
+    // init framebuffer
+    void contextCreated(NVGcontext*) override;
+
+    void paint(juce::Graphics&) override;
+    void draw(NanoVGGraphics& g) override;
+    void resized() override;
+
+private:
+    Framebuffer framebuffer;
+    int robotoFontId= -1;
 };

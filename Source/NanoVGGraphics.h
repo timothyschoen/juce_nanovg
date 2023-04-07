@@ -19,6 +19,7 @@ public:
     virtual void contextCreated(NVGcontext*) {}
 
     NVGcontext* getContext() const { return nvg; }
+    NVGframebuffer* getMainFramebuffer() const { return mainFrameBuffer; }
 
     /** Create an IGraphics layer. Switches drawing to an offscreen bitmap for drawing
      * IControl* pOwner The control that owns the layer
@@ -55,6 +56,8 @@ public:
     APIBitmap* createBitmap(int width, int height, float scale, float drawScale_);
 
     void deleteFBO(NVGframebuffer* pBuffer);
+    float getWindowWidth() { return windowWidth; }
+    float getWindowHeight() { return windowHeight; }
 protected:
     void render();
 private:

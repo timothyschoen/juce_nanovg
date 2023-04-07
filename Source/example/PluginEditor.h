@@ -2,7 +2,7 @@
 #include "PluginProcessor.h"
 // #include "MainComponent.h"
 #include "NVGDemoComponent.h"
-// #include "CacheTest.h"
+#include "CacheTest.h"
 
 //==============================================================================
 class AudioPluginAudioProcessorEditor  : public juce::AudioProcessorEditor
@@ -18,9 +18,10 @@ private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     AudioPluginAudioProcessor& processorRef;
-    // MainComponent mainComp;
-    NVGDemoComponent demoComp;
-    // CacheTest cacheTest;
+    // MainComponent comp;
+    NVGDemoComponent comp;
+    // CacheTest comp;
+    // ScopedFramebufferTest comp;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };

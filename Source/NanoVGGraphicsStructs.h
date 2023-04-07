@@ -128,6 +128,11 @@ public:
     ComponentLayer() = default;
     ~ComponentLayer() = default;
 
+protected:
+    friend class NanoVGGraphics;
+    friend class Layer;
+
+    virtual void draw(NanoVGGraphics& g);
     virtual void drawCachable(NanoVGGraphics&) {}
     virtual void drawAnimated(NanoVGGraphics&) {}
 
@@ -136,9 +141,61 @@ public:
     Blend blend;
     bool useLayer = false;
 
-protected:
-    void draw(NanoVGGraphics& g);
-
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ComponentLayer)
+};
+
+//==============================================================================
+
+
+// Handles most of the tricky stuff with framebuffers
+class Framebuffer
+{
+public:
+    /*
+    ScopedBind Usage:
+    {
+        // binds to the framebuffer upon construction
+        Framebuffer::ScopedBind bind(g, fb);
+
+        // draw here
+        nvgBeginPath()
+        nvg.... some other methods
+        ...
+        ...
+        // end of scope, binds back to main buffer in the destructor
+    }
+    fb.paint();
+    */
+    class ScopedBind
+    {
+    public:
+        ScopedBind(NanoVGGraphics&, Framebuffer&);
+        ~ScopedBind();
+    private:
+        NanoVGGraphics& graphics;
+        Framebuffer& fb;
+    };
+
+    ~Framebuffer();
+
+    void init(NVGcontext*);
+    NVGframebuffer* get() { return fb; }
+
+    // paints the framebuffer
+    void paint();
+
+    void setBounds(float x, float y, float width, float height);
+    void draw();
+
+    bool isValid() { return valid; }
+    void setValid(bool v) { valid = v; }
+    float getWidth() { return width; }
+    float getHeight() { return height; }
+private:
+    NVGcontext* ctx = nullptr;
+    NVGframebuffer* fb = nullptr;
+    // the above paint() method with use these coords to paint the image
+    float x = 0, y = 0, width = 0, height = 0;
+    bool valid = false;
 };

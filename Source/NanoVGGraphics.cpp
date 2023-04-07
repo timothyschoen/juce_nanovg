@@ -115,7 +115,7 @@ APIBitmap *NanoVGGraphics::createBitmap(int width, int height, float scale_, flo
 
     if (inDraw)
     {
-        nvgBindFramebuffer(nvg, mainFrameBuffer); // begin main frame buffer update
+        nvgBindFramebuffer(mainFrameBuffer); // begin main frame buffer update
         // nvgBeginFrame(nvg, windowWidth, windowHeight, getScreenScale());
         nvgBeginFrame(nvg, (float)windowWidth, (float)windowHeight, 1.0f);
     }
@@ -165,7 +165,7 @@ void NanoVGGraphics::updateLayer()
     {
         nvgEndFrame(nvg);
 
-        nvgBindFramebuffer(nvg, mainFrameBuffer);
+        nvgBindFramebuffer(mainFrameBuffer);
         // nvgBeginFrame(nvg, windowWidth, windowHeight, getScreenScale());
         nvgBeginFrame(nvg, (float)windowWidth, (float)windowHeight, 1.0f);
     }
@@ -173,7 +173,7 @@ void NanoVGGraphics::updateLayer()
     {
         nvgEndFrame(nvg);
 
-        nvgBindFramebuffer(nvg, layers.top()->bitmap.get()->getFBO());
+        nvgBindFramebuffer(layers.top()->bitmap.get()->getFBO());
 #ifdef __APPLE__
         nvgClearWithColor(nvg, nvgRGBA(0, 0, 0, 0));
 #endif
@@ -299,14 +299,14 @@ void NanoVGGraphics::beginFrame()
     jassert(mainFrameBuffer != nullptr);
 
     inDraw = true;
-    nvgBindFramebuffer(nvg, mainFrameBuffer); // begin main frame buffer update
+    nvgBindFramebuffer(mainFrameBuffer); // begin main frame buffer update
     nvgBeginFrame(nvg, (float)windowWidth, (float)windowHeight, 1.0f);
 }
 
 void NanoVGGraphics::endFrame()
 {
     nvgEndFrame(nvg); // end main frame buffer update
-    nvgBindFramebuffer(nvg, nullptr);
+    nvgBindFramebuffer(nullptr);
     nvgBeginFrame(nvg, (float)windowWidth, (float)windowHeight, 1.0f);
 
     NVGpaint img = nvgImagePattern(nvg, 0.0f, 0.0f, (float)windowWidth, (float)windowHeight, 0.0f, mainFrameBuffer->image, 1.0f);
