@@ -428,15 +428,17 @@ void NanoVGGraphicsContext::drawLine (const juce::Line<float>& line)
 void NanoVGGraphicsContext::setFont (const juce::Font& f)
 {
     font = f;
-    juce::String name {font.getTypefacePtr()->getName()};
-    name << "-" << font.getTypefaceStyle();
+    auto name = font.getTypefacePtr()->getName() + "-" + font.getTypefaceStyle();
+    
+    if(!loadedFonts.count(name))
+    {
+        loadedFonts[name] = getGlyphToCharMapForFont(f);
+    }
+    
+    currentGlyphToCharMap = &loadedFonts[name];
 
-    if (loadFontFromResources (name))
-        nvgFontFace (nvg, name.toUTF8());
-    else
-        nvgFontFace (nvg, defaultTypefaceName.toRawUTF8());
-
-    nvgFontSize (nvg, font.getHeight());
+    nvgFontFace (nvg, name.toUTF8());
+    nvgFontSize (nvg, font.getHeight() - 2.35f);
 }
 
 const juce::Font& NanoVGGraphicsContext::getFont()
@@ -444,26 +446,21 @@ const juce::Font& NanoVGGraphicsContext::getFont()
     return font;
 }
 
-void NanoVGGraphicsContext::drawGlyph (int glyphNumber, const juce::AffineTransform& t)
+void NanoVGGraphicsContext::drawGlyph (int glyphNumber, const juce::AffineTransform& transform)
 {
-    /* This would be better, but there is a problem with glyph lookup currently
-    if (currentGlyphToCharMap == nullptr)
-        return;
+    char txt[2] = {'?', 0};
     
-    char txt[2] = {(char)glyphNumber, 0};
-
     if (currentGlyphToCharMap->find (glyphNumber) != currentGlyphToCharMap->end())
         txt[0] = (char)currentGlyphToCharMap->at (glyphNumber);
-
-    nvgText (nvg, t.getTranslationX(), t.getTranslationY(), txt, &txt[1]); */
     
+    auto x = transform.getTranslationX();
+    auto y = transform.getTranslationY();
+    auto t = transform.withAbsoluteTranslation(0.0f, 0.0f);
     
-    juce::Path p;
-    font.getTypefacePtr()->getOutlineForGlyph (glyphNumber, p);
-
-    fillPath (p, juce::AffineTransform::scale (font.getHeight() * font.getHorizontalScale(), font.getHeight())
-                                 .followedBy(t));
-
+    nvgSave(nvg);
+    nvgTransform (nvg, t.mat00, t.mat10, t.mat01, t.mat11, t.mat02, t.mat12);
+    nvgText (nvg, x, y, txt, &txt[1]);
+    nvgRestore(nvg);
 }
 
 bool NanoVGGraphicsContext::drawTextLayout (const juce::AttributedString& str, const juce::Rectangle<float>& rect)
@@ -532,14 +529,6 @@ bool NanoVGGraphicsContext::loadFont (const juce::String& name, const char* ptr,
                                          (unsigned char*)ptr, size,
                                          0 // Tell nvg to take ownership of the font data
                                         );
-
-        if (id >= 0)
-        {
-            juce::Font tmpFont (juce::Typeface::createSystemTypefaceFor (ptr, (size_t)size));
-            loadedFonts[name] = getGlyphToCharMapForFont (tmpFont);
-            currentGlyphToCharMap = &loadedFonts[name];
-            return true;
-        }
     }
     else
     {
@@ -555,7 +544,7 @@ bool NanoVGGraphicsContext::loadFontFromResources (const juce::String& typefaceN
     if (it != loadedFonts.end())
     {
         currentGlyphToCharMap = &it->second;
-        return true; // Already loaded
+        return true;
     }
 
     int size;
@@ -653,8 +642,9 @@ NanoVGGraphicsContext::GlyphToCharMap NanoVGGraphicsContext::getGlyphToCharMapFo
 
         const auto* wstr = allPrintableAsciiCharacters.toWideCharPointer();
 
-        for (int i = 0; i < allPrintableAsciiCharacters.length(); ++i)
+        for (int i = 0; i < allPrintableAsciiCharacters.length(); ++i) {
             map[glyphs[i]] = wstr[i];
+        }
     }
 
     return map;
