@@ -95,28 +95,22 @@ bool NanoVGGraphicsContext::clipToRectangle (const juce::Rectangle<int>& rect)
 
 bool NanoVGGraphicsContext::clipToRectangleList (const juce::RectangleList<int>& rects)
 {
-    for (const auto& rect : rects)
-        nvgIntersectScissor (nvg, rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
+    auto rect = rects.getBounds();
+    nvgIntersectScissor (nvg, rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
+    
+    //for (const auto& rect : rects)
+    //    nvgIntersectScissor (nvg, rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
 
     return ! getClipBounds().isEmpty();
 }
 
 void NanoVGGraphicsContext::excludeClipRectangle (const juce::Rectangle<int>& rectangle)
 {
-   //nvgResetScissor(nvg);
+    juce::RectangleList<int> rectangles;
+    rectangles.add(getClipBounds());
+    rectangles.subtract(rectangle);
     
-    juce::RectangleList<int> rects;
-
-   // Get the rectangle coordinates in NanoVG coordinates
-   float x = static_cast<float>(rectangle.getX());
-   float y = static_cast<float>(rectangle.getY());
-   float w = static_cast<float>(rectangle.getWidth());
-   float h = static_cast<float>(rectangle.getHeight());
-   nvgRect(nvg, x, y, w, h);
-
-   // Exclude the rectangle from the clipping area
-   nvgPathWinding(nvg, NVG_HOLE);
-   nvgScissor(nvg, 0, 0, static_cast<float>(width), static_cast<float>(height));
+    clipToRectangleList(rectangles);
 }
 
 void NanoVGGraphicsContext::clipToPath (const juce::Path& path, const juce::AffineTransform& t)

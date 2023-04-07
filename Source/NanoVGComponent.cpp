@@ -100,6 +100,20 @@ void NanoVGComponent::ComponentUpdater::componentMovedOrResized (juce::Component
 
         owner->nvgGraphicsContext->resized(owner->getWidth(), owner->getHeight(), owner->scale);
 
+        int scaledHeight = owner->getHeight() * owner->scale;
+        int scaledWidth = owner->getWidth() * owner->scale;
+
+        auto* nvg = owner->nvgGraphicsContext->getContext();
+        
+        nvgDeleteFramebuffer(owner->mainFB);
+        nvgDeleteFramebuffer(owner->invalidFB);
+        
+        // Create a new framebuffer for the main context
+        owner->mainFB = nvgCreateFramebuffer(nvg, scaledWidth, scaledHeight, 0);
+ 
+        // Create a new framebuffer for the invalid area
+        owner->invalidFB = nvgCreateFramebuffer(nvg, scaledWidth, scaledHeight, 0);
+        
 #if NANOVG_METAL_IMPLEMENTATION
         mnvgSetViewBounds(owner->getPeer()->getNativeHandle(), juce::roundToInt(owner->scale * owner->getWidth()), juce::roundToInt(owner->scale * owner->getHeight()));
 #endif
@@ -145,23 +159,26 @@ void NanoVGComponent::render()
 
     auto* nvg = nvgGraphicsContext->getContext();
 
+
+    if(!mainFB || !invalidFB) {
+        // Create a new framebuffer for the main context
+        mainFB = nvgCreateFramebuffer(nvg, scaledWidth, scaledHeight, 0);
+        
+        nvgBindFramebuffer(mainFB);
+        
+        // Create a new framebuffer for the invalid area
+        invalidFB = nvgCreateFramebuffer(nvg, scaledWidth, scaledHeight, 0);
+    }
+    
     // Save the current state of the context
     nvgSave(nvg);
 
-    if(!mainFB) {
-        // Create a new framebuffer for the main context
-        mainFB = nvgCreateFramebuffer(nvg, scaledWidth, scaledHeight, 0);
-    }
-
     // Bind the new framebuffer to the context
-    nvgBindFramebuffer(mainFB);
+    //nvgBindFramebuffer(mainFB);
 
     juce::MessageManager::Lock mmLock;
     juce::Graphics fbGraphics(*nvgGraphicsContext.get());
-
-    // Create a new framebuffer for the invalid area
-    NVGframebuffer* invalidFB = nvgCreateFramebuffer(nvg, scaledWidth, scaledHeight, 0);
-
+    
     // Bind the new framebuffer to the context
     nvgBindFramebuffer(invalidFB);
 
@@ -199,10 +216,6 @@ void NanoVGComponent::render()
     nvgFillPaint(nvg, nvgImagePattern(nvg, 0, 0, scaledWidth, scaledHeight, 0, mainFB->image, 1));
     nvgFill(nvg);
     nvgEndFrame(nvg);
-
-    // Delete the framebuffers
-    //nvgDeleteFramebuffer(mainFB);
-    nvgDeleteFramebuffer(invalidFB);
 
     #if NANOVG_GL_IMPLEMENTATION
         if (!openGLContext.isActive())
@@ -339,8 +352,9 @@ NanoVGComponent::RenderCache::~RenderCache()
     cancelPendingUpdate();
 }
 
-void NanoVGComponent::RenderCache::paint (juce::Graphics&)
+void NanoVGComponent::RenderCache::paint (juce::Graphics& g)
 {
+    //component.invalidArea = g.getClipBounds();
     component.paintComponent();
 }
 

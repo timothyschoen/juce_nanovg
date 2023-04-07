@@ -61,6 +61,7 @@ private:
     bool showRenderStats {false};
 
     NVGframebuffer* mainFB = nullptr;
+    NVGframebuffer* invalidFB = nullptr;
 
     std::unique_ptr<NanoVGGraphicsContext> nvgGraphicsContext {nullptr};
 
