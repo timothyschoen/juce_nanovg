@@ -6,12 +6,11 @@
 #include "NanoVGGraphicsContext.h"
 
 /**
-    JUCE UI component rendered usin nanovg
+    JUCE UI component rendered using nanovg
 
     @note All normal JUCE components placed within this one will be
           rendered with nanovg as well.
 */
-
 
 class NanoVGComponent :
 #if NANOVG_METAL_IMPLEMENTATION
@@ -53,9 +52,12 @@ public:
 
     juce::RectangleList<int> invalidArea;
     
+    NVGframebuffer* getMainFramebuffer() { return mainFB; };
+    
+    void vBlank();
+    
 private:
     void paintComponent();
-    
 
     bool currentlyPainting {false};
     bool showRenderStats {false};
@@ -63,8 +65,10 @@ private:
     NVGframebuffer* mainFB = nullptr;
     NVGframebuffer* invalidFB = nullptr;
 
-    std::unique_ptr<NanoVGGraphicsContext> nvgGraphicsContext {nullptr};
+    std::unique_ptr<NanoVGGraphicsContext> nvgGraphicsContext = nullptr;
 
+    void updateRenderBounds();
+    
     void initialise();
     void render();
     void shutdown();
@@ -78,31 +82,88 @@ private:
     void updateWindowPosition (juce::Rectangle<int> bounds);
 #endif
 
-    //==========================================================================
-
+#define RENDER_ON_THREAD 0
+    
     class RenderCache
         : public juce::CachedComponentImage
-        , private juce::AsyncUpdater
+#if RENDER_ON_THREAD
+        , private juce::ThreadPool
+#endif
     {
     public:
-        RenderCache (NanoVGComponent& comp);
-        ~RenderCache() override;
 
-        void paint (juce::Graphics&) override;
-        bool invalidateAll() override;
-        bool invalidate (const juce::Rectangle<int>&) override;
-        void releaseResources() override;
+        RenderCache (NanoVGComponent& comp)
+        :
+#if RENDER_ON_THREAD
+        ThreadPool(1),
+#endif
+        vblank(&comp, [this](){
+            onVBlank();
+        }),
+        component(comp)
+        {
+        }
+
+        ~RenderCache()
+        {
+#if RENDER_ON_THREAD
+            removeAllJobs(true, 1000);
+#endif
+        }
+        
+        void paint (juce::Graphics& g) override
+        {
+        }
+
+        bool invalidateAll() override
+        {
+            component.invalidArea = component.getLocalBounds();
+            
+#if RENDER_ON_THREAD
+            addJob([this](){
+                component.render();
+            });
+#endif
+            return false;
+        }
+        
+        bool invalidate (const juce::Rectangle<int>& rect) override
+        {
+            component.invalidArea.add(rect);
+            
+#if RENDER_ON_THREAD
+            addJob([this](){
+                component.render();
+            });
+#endif
+            return false;
+        }
+        
+        void onVBlank()
+        {
+#if !RENDER_ON_THREAD
+            component.render();
+#endif
+            
+            component.paintComponent();
+        }
+
+        void releaseResources() override
+        {
+        }
 
     private:
-        void handleAsyncUpdate() override;
-
+        
         NanoVGComponent& component;
+        juce::VBlankAttachment vblank;
     };
 
 
     ComponentUpdater updater = ComponentUpdater(this);
-    //==========================================================================
 
-    std::atomic<bool> initialised {false};
-    float scale {1.0f};
+    std::atomic<bool> initialised = false;
+    std::atomic<bool> boundsChanged = false;
+    std::atomic<bool> needsRepaint = false;
+    
+    float scale = 1.0f;
 };

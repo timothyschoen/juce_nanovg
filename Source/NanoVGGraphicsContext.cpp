@@ -115,7 +115,6 @@ void NanoVGGraphicsContext::excludeClipRectangle (const juce::Rectangle<int>& re
 
 void NanoVGGraphicsContext::clipToPath (const juce::Path& path, const juce::AffineTransform& t)
 {
-    // @todo
     const auto rect = path.getBoundsTransformed (t);
     nvgIntersectScissor (nvg, rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
 }
@@ -357,12 +356,13 @@ void NanoVGGraphicsContext::drawImage (const juce::Image& image, const juce::Aff
     {
         juce::Image::BitmapData srcData (image, juce::Image::BitmapData::readOnly);
         auto id = getNvgImageId (image);
-
+        
         if (id < 0)
             return; // invalid image.
-
+        
         juce::Rectangle<float> rect (0.0f, 0.0f, image.getWidth(), image.getHeight());
-        rect = rect.transformedBy (t);
+
+        //rect = rect.transformedBy (t);
 
         NVGpaint imgPaint = nvgImagePattern (nvg,
                                              0, 0,
@@ -372,10 +372,13 @@ void NanoVGGraphicsContext::drawImage (const juce::Image& image, const juce::Aff
                                              1.0f    // alpha
                                              );
 
+        nvgSave(nvg);
+        nvgTransform (nvg, t.mat00, t.mat10, t.mat01, t.mat11, t.mat02, t.mat12);
         nvgBeginPath (nvg);
         nvgRect (nvg, rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
         nvgFillPaint (nvg, imgPaint);
         nvgFill (nvg);
+        nvgRestore(nvg);
     }
     else if(image.isRGB()){
         
@@ -432,7 +435,7 @@ void NanoVGGraphicsContext::setFont (const juce::Font& f)
     currentGlyphToCharMap = &loadedFonts[name];
 
     nvgFontFace (nvg, name.toUTF8());
-    nvgFontSize (nvg, font.getHeight() - 2.35f);
+    nvgFontSize (nvg, font.getHeight() - 2.0f);
 }
 
 const juce::Font& NanoVGGraphicsContext::getFont()
@@ -570,11 +573,19 @@ int NanoVGGraphicsContext::getNvgImageId (const juce::Image& image)
             for (int x = 0; x < argbImage.getWidth(); ++x)
             {
                 juce::uint32 argb = scanLine[x];
-                juce::uint32 abgr =  (argb & 0xFF00FF00)          // a, g
-                            | ((argb & 0x000000FF) << 16)   // b
-                            | ((argb & 0x00FF0000) >> 16);  // r
-
-                scanLine[x] = abgr; // bytes order
+                
+                juce::uint8 a = argb >> 24;
+                juce::uint8 r = argb >> 16;
+                juce::uint8 g = argb >> 8;
+                juce::uint8 b = argb;
+                
+                // premultiply alpha
+                r = (r * a + 127) / 255;
+                g = (g * a + 127) / 255;
+                b = (b * a + 127) / 255;
+                
+                // order bytes as abgr
+                scanLine[x] = (a << 24) | (b << 16) | (g << 8) | r;
             }
         }
 
